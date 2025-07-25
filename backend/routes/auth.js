@@ -16,7 +16,7 @@ router.post('/login', (req, res) => {
         }
 
         // 验证管理密钥
-        const adminKey = process.env.ADMIN_KEY || 'admin123';
+        const adminKey = process.env.ADMIN_SECRET_KEY || 'admin123';
         if (key !== adminKey) {
             return res.status(401).json({
                 success: false,
