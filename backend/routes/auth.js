@@ -104,7 +104,7 @@ router.post('/logout', (req, res) => {
 });
 
 // 更新管理密钥
-router.put('/change-key', authenticateToken, requireAdmin, (req, res) => {
+router.put('/change-key', (req, res) => {
     try {
         const { currentKey, newKey } = req.body;
 
