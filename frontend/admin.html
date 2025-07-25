@@ -272,135 +272,135 @@
 
             const AdminContent = {
                 template: `
-                    <div class="admin-container">
-                        <!-- 侧边栏 -->
-                        <div class="sidebar" :class="{ open: sidebarOpen }">
-                            <div class="sidebar-header">
-                                <div class="back-to-index">
-                                    <n-button 
-                                        type="info" 
-                                        size="small" 
-                                        round 
-                                        @click="goToIndex"
-                                        style="width: 100%;"
-                                    >
-                                        <template #icon>
-                                            <n-icon>
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                                    <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8l8 8l1.42-1.41L7.83 13H20v-2z"/>
-                                                </svg>
-                                            </n-icon>
-                                        </template>
-                                        返回歌单页面
-                                    </n-button>
-                                </div>
-                            </div>
-                            <div class="sidebar-menu">
-                                <div class="menu-item" :class="{ active: currentPage === 'overview' }" @click="navigateTo('overview')">
-                                    <span class="menu-icon">📊</span>
-                                    <span>数据概览</span>
-                                </div>
-                                <div class="menu-item" :class="{ active: currentPage === 'profile' }" @click="navigateTo('profile')">
-                                    <span class="menu-icon">👤</span>
-                                    <span>用户设置</span>
-                                </div>
-                                <div class="menu-item" :class="{ active: currentPage === 'tags' }" @click="navigateTo('tags')">
-                                    <span class="menu-icon">🏷️</span>
-                                    <span>标签管理</span>
-                                </div>
-                                <div class="menu-item" :class="{ active: currentPage === 'songs' }" @click="navigateTo('songs')">
-                                    <span class="menu-icon">🎵</span>
-                                    <span>歌曲管理</span>
-                                </div>
-                                <div class="menu-item" :class="{ active: currentPage === 'security' }" @click="navigateTo('security')">
-                                    <span class="menu-icon">🔒</span>
-                                    <span>安全设置</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 主内容区 -->
-                        <div class="main-content">
-                            <!-- 移动端菜单按钮 -->
+            <div class="admin-container">
+                <!-- 侧边栏 -->
+                <div class="sidebar" :class="{ open: sidebarOpen }">
+                    <div class="sidebar-header">
+                        <div class="back-to-index">
                             <n-button 
-                                class="mobile-menu-toggle" 
-                                @click="sidebarOpen = !sidebarOpen"
-                                style="margin-bottom: 20px;"
-                                circle
-                                size="large"
+                                type="info" 
+                                size="small" 
+                                round 
+                                @click="goToIndex"
+                                style="width: 100%;"
                             >
                                 <template #icon>
                                     <n-icon>
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                                            <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8l8 8l1.42-1.41L7.83 13H20v-2z"/>
                                         </svg>
                                     </n-icon>
                                 </template>
+                                返回歌单页面
                             </n-button>
+                        </div>
+                    </div>
+                    <div class="sidebar-menu">
+                        <div class="menu-item" :class="{ active: currentPage === 'overview' }" @click="navigateTo('overview')">
+                            <span class="menu-icon">📊</span>
+                            <span>数据概览</span>
+                        </div>
+                        <div class="menu-item" :class="{ active: currentPage === 'profile' }" @click="navigateTo('profile')">
+                            <span class="menu-icon">👤</span>
+                                    <span>用户设置</span>
+                        </div>
+                        <div class="menu-item" :class="{ active: currentPage === 'tags' }" @click="navigateTo('tags')">
+                            <span class="menu-icon">🏷️</span>
+                            <span>标签管理</span>
+                        </div>
+                        <div class="menu-item" :class="{ active: currentPage === 'songs' }" @click="navigateTo('songs')">
+                            <span class="menu-icon">🎵</span>
+                            <span>歌曲管理</span>
+                        </div>
+                                <div class="menu-item" :class="{ active: currentPage === 'security' }" @click="navigateTo('security')">
+                                    <span class="menu-icon">🔒</span>
+                                    <span>安全设置</span>
+                                </div>
+                    </div>
+                </div>
 
-                            <!-- 页面头部 -->
-                            <div class="admin-header">
-                                <div>
-                                    <n-text style="font-size: 1.8rem; font-weight: bold;">{{ pageTitle }}</n-text>
-                                    <div style="margin-top: 5px;">
-                                        <n-text depth="3">{{ pageSubtitle }}</n-text>
-                                    </div>
-                                </div>
-                                <div class="admin-actions">
-                                    <n-button type="info" @click="refreshData" :loading="loading">
-                                        <template #icon>
-                                            <n-icon>
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                                    <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                                                </svg>
-                                            </n-icon>
-                                        </template>
-                                        刷新
-                                    </n-button>
-                                    <n-button type="error" @click="logout">
-                                        <template #icon>
-                                            <n-icon>
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                                    <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5l-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-                                                </svg>
-                                            </n-icon>
-                                        </template>
-                                        退出登录
-                                    </n-button>
-                                </div>
+                <!-- 主内容区 -->
+                <div class="main-content">
+                    <!-- 移动端菜单按钮 -->
+                    <n-button 
+                        class="mobile-menu-toggle" 
+                        @click="sidebarOpen = !sidebarOpen"
+                        style="margin-bottom: 20px;"
+                        circle
+                        size="large"
+                    >
+                        <template #icon>
+                            <n-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                                </svg>
+                            </n-icon>
+                        </template>
+                    </n-button>
+
+                    <!-- 页面头部 -->
+                    <div class="admin-header">
+                        <div>
+                            <n-text style="font-size: 1.8rem; font-weight: bold;">{{ pageTitle }}</n-text>
+                            <div style="margin-top: 5px;">
+                                <n-text depth="3">{{ pageSubtitle }}</n-text>
                             </div>
+                        </div>
+                        <div class="admin-actions">
+                            <n-button type="info" @click="refreshData" :loading="loading">
+                                <template #icon>
+                                    <n-icon>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                                        </svg>
+                                    </n-icon>
+                                </template>
+                                刷新
+                            </n-button>
+                            <n-button type="error" @click="logout">
+                                <template #icon>
+                                    <n-icon>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5l-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                                        </svg>
+                                    </n-icon>
+                                </template>
+                                退出登录
+                            </n-button>
+                        </div>
+                    </div>
 
-                            <!-- 数据概览页面 -->
-                            <div v-if="currentPage === 'overview'">
-                                <div class="stats-grid">
-                                    <n-card title="总歌曲数" hoverable>
-                                        <n-statistic :value="songs.length" />
-                                    </n-card>
-                                    <n-card title="标签数量" hoverable>
-                                        <n-statistic :value="tags.length" />
-                                    </n-card>
-                                    <n-card title="系统状态" hoverable>
-                                        <n-statistic value="正常" />
-                                    </n-card>
-                                </div>
+                    <!-- 数据概览页面 -->
+                    <div v-if="currentPage === 'overview'">
+                        <div class="stats-grid">
+                            <n-card title="总歌曲数" hoverable>
+                                <n-statistic :value="songs.length" />
+                            </n-card>
+                            <n-card title="标签数量" hoverable>
+                                <n-statistic :value="tags.length" />
+                            </n-card>
+                            <n-card title="系统状态" hoverable>
+                                <n-statistic value="正常" />
+                            </n-card>
+                        </div>
 
-                                <n-card title="最近添加的歌曲" hoverable>
-                                    <n-list>
-                                        <n-list-item v-for="song in songs.slice(-5)" :key="song.id">
-                                            <n-thing :title="song.title" :description="song.artist">
-                                                <template #footer>
-                                                    <n-space>
-                                                        <n-tag v-for="tag in song.tags" :key="tag" size="small" type="info">
-                                                            {{ tag }}
-                                                        </n-tag>
-                                                    </n-space>
-                                                </template>
-                                            </n-thing>
-                                        </n-list-item>
-                                    </n-list>
-                                    <n-empty v-if="songs.length === 0" description="暂无歌曲" />
-                                </n-card>
-                            </div>
+                        <n-card title="最近添加的歌曲" hoverable>
+                            <n-list>
+                                <n-list-item v-for="song in songs.slice(-5)" :key="song.id">
+                                    <n-thing :title="song.title" :description="song.artist">
+                                        <template #footer>
+                                            <n-space>
+                                                <n-tag v-for="tag in song.tags" :key="tag" size="small" type="info">
+                                                    {{ tag }}
+                                                </n-tag>
+                                            </n-space>
+                                        </template>
+                                    </n-thing>
+                                </n-list-item>
+                            </n-list>
+                            <n-empty v-if="songs.length === 0" description="暂无歌曲" />
+                        </n-card>
+                    </div>
 
                             <!-- 用户设置页面 -->
                             <div v-if="currentPage === 'profile'">
@@ -477,11 +477,11 @@
                                         <n-form-item>
                                             <n-button type="primary" @click="saveProfile" :loading="profileSaving">
                                                 保存设置
-                                            </n-button>
+                                </n-button>
                                         </n-form-item>
                                     </n-form>
-                                </div>
                             </div>
+                    </div>
 
                             <!-- 标签管理页面 -->
                             <div v-if="currentPage === 'tags'">
@@ -491,7 +491,7 @@
                                         <n-input v-model:value="newTagName" placeholder="输入标签名称" style="width: 200px;" @keyup.enter="addTag" />
                                         <n-button type="primary" @click="addTag" :loading="tagAdding">添加标签</n-button>
                                     </n-space>
-                                </div>
+                </div>
 
                                 <div class="form-section">
                                     <div class="section-title">现有标签</div>
@@ -499,7 +499,7 @@
                                         <div>
                                             <n-text strong>{{ tag.name }}</n-text>
                                             <div class="tag-stats">使用次数: {{ tag.usage_count }}</div>
-                                        </div>
+            </div>
                                         <n-space>
                                             <n-button size="small" @click="editTag(tag)">编辑</n-button>
                                             <n-button size="small" type="error" @click="deleteTag(tag.name)">删除</n-button>
@@ -507,7 +507,7 @@
                                     </div>
                                     <n-empty v-if="tagDetails.length === 0" description="暂无标签" />
                                 </div>
-                            </div>
+    </div>
 
                             <!-- 歌曲管理页面 -->
                             <div v-if="currentPage === 'songs'">
@@ -750,7 +750,7 @@
                                 id: null,
                                 title: '',
                                 artist: '',
-                                tags: []
+                        tags: []
                             }
                         },
                         excelImporting: false,

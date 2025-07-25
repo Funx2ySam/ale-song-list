@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# 依赖和缓存
+node_modules
+npm-debug.log*
+.npm
+
+# 环境文件
+.env
+.env.test
+.env.production
+
+# 日志文件
+*.log
+backend/logs
+
+# 临时文件
+*.tmp
+*.temp
+
+# IDE配置
+.vscode
+.idea
+*.swp
+*.swo
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 构建文件
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# 文档和说明
+README.md
+CLAUDE.md
+PORT_TROUBLESHOOTING.md
+
+# Claude工作目录
+.claude/ 

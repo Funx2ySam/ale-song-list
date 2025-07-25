@@ -108,9 +108,7 @@ frontend/uploads/temp/*
 ehthumbs.db
 Thumbs.db
 
-# Docker
-.dockerignore
-
 # 临时文件
 *.tmp
 *.temp
+ACTIONS_SETUP.md
