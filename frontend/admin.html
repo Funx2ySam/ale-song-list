@@ -814,12 +814,80 @@
                 },
                 
                 methods: {
+                    // 通用API调用方法，自动处理401错误
+                    async apiCall(url, options = {}) {
+                        const token = sessionStorage.getItem('admin_token');
+                        const defaultOptions = {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token && { 'Authorization': `Bearer ${token}` })
+                            }
+                        };
+
+                        const finalOptions = {
+                            ...defaultOptions,
+                            ...options,
+                            headers: {
+                                ...defaultOptions.headers,
+                                ...options.headers
+                            }
+                        };
+
+                        try {
+                            const response = await fetch(url, finalOptions);
+                            
+                            if (response.status === 401) {
+                                // 401错误，清除token并跳转
+                                sessionStorage.removeItem('admin_token');
+                                sessionStorage.removeItem('admin_auth_time');
+                                this.message.error('登录已过期，请重新登录');
+                                setTimeout(() => this.goToIndex(), 1000);
+                                throw new Error('登录已过期');
+                            }
+                            
+                            return response;
+                        } catch (error) {
+                            throw error;
+                        }
+                    },
+
                     // 身份验证
                     async checkAuth() {
                         const token = sessionStorage.getItem('admin_token');
                         if (!token) {
                             this.goToIndex();
                             return;
+                        }
+
+                        // 验证token有效性
+                        try {
+                            const response = await fetch('/api/auth/verify', {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
+                            
+                            if (!response.ok) {
+                                // token无效，清除并跳转
+                                sessionStorage.removeItem('admin_token');
+                                sessionStorage.removeItem('admin_auth_time');
+                                this.message.error('登录已过期，请重新登录');
+                                setTimeout(() => this.goToIndex(), 1000);
+                                return;
+                            }
+                            
+                            const data = await response.json();
+                            if (!data.success || !data.valid) {
+                                // token无效，清除并跳转
+                                sessionStorage.removeItem('admin_token');
+                                sessionStorage.removeItem('admin_auth_time');
+                                this.message.error('登录已过期，请重新登录');
+                                setTimeout(() => this.goToIndex(), 1000);
+                                return;
+                            }
+                        } catch (error) {
+                            console.error('验证token失败:', error);
+                            // 网络错误等情况下，暂时允许继续，但在后续API调用中会自然报错
                         }
                     },
                     
@@ -951,12 +1019,10 @@
                         formData.append('avatar', file);
                         
                         try {
-                            const response = await fetch('/api/streamer/avatar', {
+                            const response = await this.apiCall('/api/streamer/avatar', {
                                 method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
-                                body: formData
+                                body: formData,
+                                headers: {} // FormData自动设置Content-Type，所以清空headers
                             });
                             
                             const data = await response.json();
@@ -967,7 +1033,9 @@
                                 this.message.error(data.error || '头像上传失败');
                             }
                         } catch (error) {
-                            this.message.error('头像上传失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('头像上传失败: ' + error.message);
+                            }
                         }
                     },
                     
@@ -990,12 +1058,10 @@
                         formData.append('background', file);
                         
                         try {
-                            const response = await fetch('/api/streamer/background', {
+                            const response = await this.apiCall('/api/streamer/background', {
                                 method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
-                                body: formData
+                                body: formData,
+                                headers: {} // FormData自动设置Content-Type，所以清空headers
                             });
                             
                             const data = await response.json();
@@ -1006,7 +1072,9 @@
                                 this.message.error(data.error || '背景图上传失败');
                             }
                         } catch (error) {
-                            this.message.error('背景图上传失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('背景图上传失败: ' + error.message);
+                            }
                         }
                     },
                     
@@ -1018,12 +1086,8 @@
                         
                         this.profileSaving = true;
                         try {
-                            const response = await fetch('/api/streamer/profile', {
+                            const response = await this.apiCall('/api/streamer/profile', {
                                 method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
                                 body: JSON.stringify({
                                     name: this.profileForm.name,
                                     description: this.profileForm.description
@@ -1037,7 +1101,9 @@
                                 this.message.error(data.error || '保存失败');
                             }
                         } catch (error) {
-                            this.message.error('保存失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('保存失败: ' + error.message);
+                            }
                         } finally {
                             this.profileSaving = false;
                         }
@@ -1052,12 +1118,8 @@
                         
                         this.tagAdding = true;
                         try {
-                            const response = await fetch('/api/tags', {
+                            const response = await this.apiCall('/api/tags', {
                                 method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
                                 body: JSON.stringify({ name: this.newTagName })
                             });
                             
@@ -1071,7 +1133,9 @@
                                 this.message.error(data.error || '添加失败');
                             }
                         } catch (error) {
-                            this.message.error('添加失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('添加失败: ' + error.message);
+                            }
                         } finally {
                             this.tagAdding = false;
                         }
@@ -1090,12 +1154,8 @@
                         }
                         
                         try {
-                            const response = await fetch(`/api/tags/${this.editTagModal.id}`, {
+                            const response = await this.apiCall(`/api/tags/${this.editTagModal.id}`, {
                                 method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
                                 body: JSON.stringify({ name: this.editTagModal.name })
                             });
                             
@@ -1109,17 +1169,16 @@
                                 this.message.error(data.error || '更新失败');
                             }
                         } catch (error) {
-                            this.message.error('更新失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('更新失败: ' + error.message);
+                            }
                         }
                     },
                     
                     async deleteTag(tagName) {
                         try {
-                            const response = await fetch(`/api/tags/${encodeURIComponent(tagName)}`, {
-                                method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                }
+                            const response = await this.apiCall(`/api/tags/${encodeURIComponent(tagName)}`, {
+                                method: 'DELETE'
                             });
                             
                             const data = await response.json();
@@ -1131,7 +1190,9 @@
                                 this.message.error(data.error || '删除失败');
                             }
                         } catch (error) {
-                            this.message.error('删除失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('删除失败: ' + error.message);
+                            }
                         }
                     },
                     
@@ -1144,12 +1205,8 @@
                         
                         this.songAdding = true;
                         try {
-                            const response = await fetch('/api/songs', {
+                            const response = await this.apiCall('/api/songs', {
                                 method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
                                 body: JSON.stringify({
                                     title: this.songForm.title,
                                     artist: this.songForm.artist,
@@ -1166,7 +1223,9 @@
                                 this.message.error(data.error || '添加失败');
                             }
                         } catch (error) {
-                            this.message.error('添加失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('添加失败: ' + error.message);
+                            }
                         } finally {
                             this.songAdding = false;
                         }
@@ -1189,12 +1248,8 @@
                         }
                         
                         try {
-                            const response = await fetch(`/api/songs/${this.editSongModal.data.id}`, {
+                            const response = await this.apiCall(`/api/songs/${this.editSongModal.data.id}`, {
                                 method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
                                 body: JSON.stringify({
                                     title: this.editSongModal.data.title,
                                     artist: this.editSongModal.data.artist,
@@ -1211,17 +1266,16 @@
                                 this.message.error(data.error || '更新失败');
                             }
                         } catch (error) {
-                            this.message.error('更新失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('更新失败: ' + error.message);
+                            }
                         }
                     },
                     
                     async deleteSong(songId) {
                         try {
-                            const response = await fetch(`/api/songs/${songId}`, {
-                                method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                }
+                            const response = await this.apiCall(`/api/songs/${songId}`, {
+                                method: 'DELETE'
                             });
                             
                             const data = await response.json();
@@ -1232,7 +1286,9 @@
                                 this.message.error(data.error || '删除失败');
                             }
                         } catch (error) {
-                            this.message.error('删除失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('删除失败: ' + error.message);
+                            }
                         }
                     },
 
@@ -1245,12 +1301,10 @@
                         try {
                             const formData = new FormData();
                             formData.append('file', file);
-                            const response = await fetch('/api/songs/import/excel', {
+                            const response = await this.apiCall('/api/songs/import/excel', {
                                 method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
-                                body: formData
+                                body: formData,
+                                headers: {} // FormData自动设置Content-Type
                             });
                             const data = await response.json();
                             if (data.success) {
@@ -1260,7 +1314,9 @@
                                 this.message.error(data.error || '歌曲批量导入失败');
                             }
                         } catch (error) {
-                            this.message.error('歌曲批量导入失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('歌曲批量导入失败: ' + error.message);
+                            }
                         } finally {
                             this.excelImporting = false;
                         }
@@ -1274,12 +1330,10 @@
                         try {
                             const formData = new FormData();
                             formData.append('file', file);
-                            const response = await fetch('/api/songs/import/image', {
+                            const response = await this.apiCall('/api/songs/import/image', {
                                 method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
-                                },
-                                body: formData
+                                body: formData,
+                                headers: {} // FormData自动设置Content-Type
                             });
                             const data = await response.json();
                             if (data.success) {
@@ -1289,7 +1343,9 @@
                                 this.message.error(data.error || '歌曲批量导入失败');
                             }
                         } catch (error) {
-                            this.message.error('歌曲批量导入失败: ' + error.message);
+                            if (error.message !== '登录已过期') {
+                                this.message.error('歌曲批量导入失败: ' + error.message);
+                            }
                         } finally {
                             this.imageImporting = false;
                         }
@@ -1315,8 +1371,7 @@
                             const response = await fetch('/api/auth/change-key', {
                                 method: 'PUT',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                    'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
                                     currentKey: this.securityForm.currentKey,
