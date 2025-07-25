@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主播管理后台</title>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Naive UI -->
+    <script src="https://unpkg.com/naive-ui@2.39.0/dist/index.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/vfonts/Lato.css">
+    <link rel="stylesheet" href="https://unpkg.com/vfonts/FiraCode.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .back-to-index {
+            margin-top: 0;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: white;
+        }
+
+        .menu-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-left-color: white;
+            font-weight: bold;
+        }
+
+        .menu-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .profile-form {
+            max-width: 600px;
+        }
+
+        .upload-area {
+            border: 2px dashed #d9d9d9;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        @media (max-width: 1200px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            .mobile-menu-toggle {
+                display: block !important;
+            }
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+        }
+
+        .message-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            z-index: 10000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .message-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .message-success { background-color: #18a058; }
+        .message-error { background-color: #d03050; }
+        .message-warning { background-color: #f0a020; }
+        .message-info { background-color: #2080f0; }
+
+        .song-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .song-info {
+            flex: 1;
+        }
+
+        .song-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tag-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .tag-stats {
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <n-config-provider :theme="theme" :theme-overrides="themeOverrides">
+            <n-message-provider>
+                <admin-content />
+            </n-message-provider>
+        </n-config-provider>
+    </div>
+
+    <script>
+        if (typeof Vue === 'undefined') {
+            console.error('Vue.js 加载失败，请检查网络连接');
+            document.body.innerHTML = '<div style="text-align:center;padding:50px;font-size:18px;">Vue.js 加载失败，请刷新页面重试</div>';
+        } else {
+            const { createApp } = Vue;
+            const { 
+                NConfigProvider, 
+                NCard,
+                NButton,
+                NIcon,
+                NText,
+                NSpace,
+                NStatistic,
+                NList,
+                NListItem,
+                NThing,
+                NTag,
+                NEmpty,
+                NForm,
+                NFormItem,
+                NInput,
+                NSelect,
+                NGrid,
+                NGridItem,
+                NModal,
+                NMessageProvider,
+                useMessage
+            } = naive;
+
+            const AdminContent = {
+                template: `
+                    <div class="admin-container">
+                        <!-- 侧边栏 -->
+                        <div class="sidebar" :class="{ open: sidebarOpen }">
+                            <div class="sidebar-header">
+                                <div class="back-to-index">
+                                    <n-button 
+                                        type="info" 
+                                        size="small" 
+                                        round 
+                                        @click="goToIndex"
+                                        style="width: 100%;"
+                                    >
+                                        <template #icon>
+                                            <n-icon>
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                    <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8l8 8l1.42-1.41L7.83 13H20v-2z"/>
+                                                </svg>
+                                            </n-icon>
+                                        </template>
+                                        返回歌单页面
+                                    </n-button>
+                                </div>
+                            </div>
+                            <div class="sidebar-menu">
+                                <div class="menu-item" :class="{ active: currentPage === 'overview' }" @click="navigateTo('overview')">
+                                    <span class="menu-icon">📊</span>
+                                    <span>数据概览</span>
+                                </div>
+                                <div class="menu-item" :class="{ active: currentPage === 'profile' }" @click="navigateTo('profile')">
+                                    <span class="menu-icon">👤</span>
+                                    <span>主播设置</span>
+                                </div>
+                                <div class="menu-item" :class="{ active: currentPage === 'tags' }" @click="navigateTo('tags')">
+                                    <span class="menu-icon">🏷️</span>
+                                    <span>标签管理</span>
+                                </div>
+                                <div class="menu-item" :class="{ active: currentPage === 'songs' }" @click="navigateTo('songs')">
+                                    <span class="menu-icon">🎵</span>
+                                    <span>歌曲管理</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 主内容区 -->
+                        <div class="main-content">
+                            <!-- 移动端菜单按钮 -->
+                            <n-button 
+                                class="mobile-menu-toggle" 
+                                @click="sidebarOpen = !sidebarOpen"
+                                style="margin-bottom: 20px;"
+                                circle
+                                size="large"
+                            >
+                                <template #icon>
+                                    <n-icon>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                                        </svg>
+                                    </n-icon>
+                                </template>
+                            </n-button>
+
+                            <!-- 页面头部 -->
+                            <div class="admin-header">
+                                <div>
+                                    <n-text style="font-size: 1.8rem; font-weight: bold;">{{ pageTitle }}</n-text>
+                                    <div style="margin-top: 5px;">
+                                        <n-text depth="3">{{ pageSubtitle }}</n-text>
+                                    </div>
+                                </div>
+                                <div class="admin-actions">
+                                    <n-button type="info" @click="refreshData" :loading="loading">
+                                        <template #icon>
+                                            <n-icon>
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                    <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                                                </svg>
+                                            </n-icon>
+                                        </template>
+                                        刷新
+                                    </n-button>
+                                    <n-button type="error" @click="logout">
+                                        <template #icon>
+                                            <n-icon>
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                    <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5l-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                                                </svg>
+                                            </n-icon>
+                                        </template>
+                                        退出登录
+                                    </n-button>
+                                </div>
+                            </div>
+
+                            <!-- 数据概览页面 -->
+                            <div v-if="currentPage === 'overview'">
+                                <div class="stats-grid">
+                                    <n-card title="总歌曲数" hoverable>
+                                        <n-statistic :value="songs.length" />
+                                    </n-card>
+                                    <n-card title="标签数量" hoverable>
+                                        <n-statistic :value="tags.length" />
+                                    </n-card>
+                                    <n-card title="系统状态" hoverable>
+                                        <n-statistic value="正常" />
+                                    </n-card>
+                                </div>
+
+                                <n-card title="最近添加的歌曲" hoverable>
+                                    <n-list>
+                                        <n-list-item v-for="song in songs.slice(-5)" :key="song.id">
+                                            <n-thing :title="song.title" :description="song.artist">
+                                                <template #footer>
+                                                    <n-space>
+                                                        <n-tag v-for="tag in song.tags" :key="tag" size="small" type="info">
+                                                            {{ tag }}
+                                                        </n-tag>
+                                                    </n-space>
+                                                </template>
+                                            </n-thing>
+                                        </n-list-item>
+                                    </n-list>
+                                    <n-empty v-if="songs.length === 0" description="暂无歌曲" />
+                                </n-card>
+                            </div>
+
+                            <!-- 主播设置页面 -->
+                            <div v-if="currentPage === 'profile'">
+                                <div class="form-section">
+                                    <div class="section-title">头像设置</div>
+                                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                                        <!-- 当前头像预览 -->
+                                        <div v-if="profileForm.avatar" style="flex-shrink: 0;">
+                                            <div style="margin-bottom: 8px; font-weight: 500; color: #666;">当前头像</div>
+                                            <div style="border: 2px solid #e0e0e0; border-radius: 8px; padding: 10px; background: white;">
+                                                <img :src="profileForm.avatar" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;" />
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 上传区域 -->
+                                        <div style="flex: 1;">
+                                            <div style="margin-bottom: 8px; font-weight: 500; color: #666;">上传新头像</div>
+                                            <div class="upload-area" @click="$refs.avatarInput.click()" @dragover.prevent @drop.prevent="handleAvatarDrop">
+                                                <input ref="avatarInput" type="file" style="display: none" accept="image/*" @change="handleAvatarUpload">
+                                                <n-icon size="40" style="color: #ccc; margin-bottom: 10px;">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z M12,12L16,16H13V19H11V16H8L12,12Z"/>
+                                                    </svg>
+                                                </n-icon>
+                                                <div>点击或拖拽上传头像</div>
+                                                <div style="font-size: 12px; color: #999; margin-top: 5px;">支持 JPG、PNG 格式，建议尺寸 300x300</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-title">背景图设置</div>
+                                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                                        <!-- 当前背景预览 -->
+                                        <div v-if="profileForm.background" style="flex-shrink: 0;">
+                                            <div style="margin-bottom: 8px; font-weight: 500; color: #666;">当前背景</div>
+                                            <div style="border: 2px solid #e0e0e0; border-radius: 8px; padding: 10px; background: white;">
+                                                <img :src="profileForm.background" style="width: 200px; height: 120px; border-radius: 6px; object-fit: cover;" />
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 上传区域 -->
+                                        <div style="flex: 1;">
+                                            <div style="margin-bottom: 8px; font-weight: 500; color: #666;">上传新背景</div>
+                                            <div class="upload-area" @click="$refs.backgroundInput.click()" @dragover.prevent @drop.prevent="handleBackgroundDrop">
+                                                <input ref="backgroundInput" type="file" style="display: none" accept="image/*" @change="handleBackgroundUpload">
+                                                <n-icon size="40" style="color: #ccc; margin-bottom: 10px;">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z M12,12L16,16H13V19H11V16H8L12,12Z"/>
+                                                    </svg>
+                                                </n-icon>
+                                                <div>点击或拖拽上传背景图</div>
+                                                <div style="font-size: 12px; color: #999; margin-top: 5px;">支持 JPG、PNG 格式，建议尺寸 1920x1080</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-title">基本信息</div>
+                                    <n-form :model="profileForm" label-placement="top">
+                                        <n-form-item label="主播名称">
+                                            <n-input v-model:value="profileForm.name" placeholder="请输入主播名称" />
+                                        </n-form-item>
+                                        <n-form-item label="个人简介">
+                                            <n-input 
+                                                v-model:value="profileForm.description" 
+                                                type="textarea" 
+                                                placeholder="请输入个人简介"
+                                                :rows="4"
+                                            />
+                                        </n-form-item>
+                                        <n-form-item>
+                                            <n-button type="primary" @click="saveProfile" :loading="profileSaving">
+                                                保存设置
+                                            </n-button>
+                                        </n-form-item>
+                                    </n-form>
+                                </div>
+                            </div>
+
+                            <!-- 标签管理页面 -->
+                            <div v-if="currentPage === 'tags'">
+                                <div class="form-section">
+                                    <div class="section-title">添加新标签</div>
+                                    <n-space>
+                                        <n-input v-model:value="newTagName" placeholder="输入标签名称" style="width: 200px;" @keyup.enter="addTag" />
+                                        <n-button type="primary" @click="addTag" :loading="tagAdding">添加标签</n-button>
+                                    </n-space>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-title">现有标签</div>
+                                    <div v-for="tag in tagDetails" :key="tag.id" class="tag-item">
+                                        <div>
+                                            <n-text strong>{{ tag.name }}</n-text>
+                                            <div class="tag-stats">使用次数: {{ tag.usage_count }}</div>
+                                        </div>
+                                        <n-space>
+                                            <n-button size="small" @click="editTag(tag)">编辑</n-button>
+                                            <n-button size="small" type="error" @click="deleteTag(tag.name)">删除</n-button>
+                                        </n-space>
+                                    </div>
+                                    <n-empty v-if="tagDetails.length === 0" description="暂无标签" />
+                                </div>
+                            </div>
+
+                            <!-- 歌曲管理页面 -->
+                            <div v-if="currentPage === 'songs'">
+                                <div class="form-section">
+                                    <div class="section-title">批量导入歌曲</div>
+                                    <n-space size="large">
+                                        <n-button type="info" @click="$refs.excelInput.click()" :loading="excelImporting">
+                                            <template #icon>
+                                                <n-icon>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z M16,11H14V17H16V11Z M12,11H10V17H12V11Z M8,11H6V17H8V11Z"/>
+                                                    </svg>
+                                                </n-icon>
+                                            </template>
+                                            Excel导入
+                                        </n-button>
+                                        <n-button type="success" @click="$refs.imageInput.click()" :loading="imageImporting">
+                                            <template #icon>
+                                                <n-icon>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/>
+                                                    </svg>
+                                                </n-icon>
+                                            </template>
+                                            图片识别导入
+                                        </n-button>
+                                        <input ref="excelInput" type="file" style="display: none" accept=".xlsx,.xls" @change="handleExcelImport">
+                                        <input ref="imageInput" type="file" style="display: none" accept="image/*" @change="handleImageImport">
+                                    </n-space>
+                                    <div style="margin-top: 12px; font-size: 14px; color: #666;">
+                                        <p style="margin: 5px 0;">Excel导入：支持 .xlsx/.xls 格式，表头应包含：歌曲名称、歌手、标签（用逗号分隔）</p>
+                                        <p style="margin: 5px 0;">图片识别：支持歌单截图的OCR识别，自动提取歌曲信息</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-title">添加新歌曲</div>
+                                    <n-form :model="songForm" label-placement="top">
+                                        <n-grid :cols="2" :x-gap="20">
+                                            <n-grid-item>
+                                                <n-form-item label="歌曲名称">
+                                                    <n-input v-model:value="songForm.title" placeholder="请输入歌曲名称" />
+                                                </n-form-item>
+                                            </n-grid-item>
+                                            <n-grid-item>
+                                                <n-form-item label="歌手">
+                                                    <n-input v-model:value="songForm.artist" placeholder="请输入歌手名称" />
+                                                </n-form-item>
+                                            </n-grid-item>
+                                        </n-grid>
+                                        <n-form-item label="标签">
+                                            <n-select 
+                                                v-model:value="songForm.tags" 
+                                                multiple 
+                                                :options="tagOptions" 
+                                                placeholder="选择标签"
+                                                clearable
+                                            />
+                                        </n-form-item>
+                                        <n-form-item>
+                                            <n-button type="primary" @click="addSong" :loading="songAdding">添加歌曲</n-button>
+                                        </n-form-item>
+                                    </n-form>
+                                </div>
+
+                                <div class="form-section">
+                                    <div class="section-title">歌曲列表</div>
+                                    <n-input v-model:value="songSearchQuery" placeholder="搜索歌曲..." style="margin-bottom: 20px;" />
+                                    <div v-for="song in filteredSongs" :key="song.id" class="song-item">
+                                        <div class="song-info">
+                                            <n-text strong>{{ song.title }}</n-text>
+                                            <div>{{ song.artist }}</div>
+                                            <n-space size="small" style="margin-top: 5px;">
+                                                <n-tag v-for="tag in song.tags" :key="tag" size="small">{{ tag }}</n-tag>
+                                            </n-space>
+                                        </div>
+                                        <div class="song-actions">
+                                            <n-button size="small" @click="editSong(song)">编辑</n-button>
+                                            <n-button size="small" type="error" @click="deleteSong(song.id)">删除</n-button>
+                                        </div>
+                                    </div>
+                                    <n-empty v-if="filteredSongs.length === 0" description="暂无歌曲" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 编辑标签模态框 -->
+                        <n-modal v-model:show="editTagModal.show" preset="dialog" title="编辑标签">
+                            <n-input v-model:value="editTagModal.name" placeholder="标签名称" />
+                            <template #action>
+                                <n-space>
+                                    <n-button @click="editTagModal.show = false">取消</n-button>
+                                    <n-button type="primary" @click="updateTag">确认</n-button>
+                                </n-space>
+                            </template>
+                        </n-modal>
+
+                        <!-- 编辑歌曲模态框 -->
+                        <n-modal v-model:show="editSongModal.show" preset="dialog" title="编辑歌曲" style="width: 500px;">
+                            <n-form :model="editSongModal.data" label-placement="top">
+                                <n-form-item label="歌曲名称">
+                                    <n-input v-model:value="editSongModal.data.title" placeholder="请输入歌曲名称" />
+                                </n-form-item>
+                                <n-form-item label="歌手">
+                                    <n-input v-model:value="editSongModal.data.artist" placeholder="请输入歌手名称" />
+                                </n-form-item>
+                                <n-form-item label="标签">
+                                    <n-select 
+                                        v-model:value="editSongModal.data.tags" 
+                                        multiple 
+                                        :options="tagOptions" 
+                                        placeholder="选择标签"
+                                        clearable
+                                    />
+                                </n-form-item>
+                            </n-form>
+                            <template #action>
+                                <n-space>
+                                    <n-button @click="editSongModal.show = false">取消</n-button>
+                                    <n-button type="primary" @click="updateSong">确认</n-button>
+                                </n-space>
+                            </template>
+                        </n-modal>
+                    </div>
+                `,
+                setup() {
+                    const message = useMessage();
+                    return { message };
+                },
+                components: {
+                    NCard,
+                    NButton,
+                    NIcon,
+                    NText,
+                    NSpace,
+                    NStatistic,
+                    NList,
+                    NListItem,
+                    NThing,
+                    NTag,
+                    NEmpty,
+                    NForm,
+                    NFormItem,
+                    NInput,
+                    NSelect,
+                    NGrid,
+                    NGridItem,
+                    NModal
+                },
+                
+                data() {
+                    return {
+                        currentPage: 'overview',
+                        sidebarOpen: false,
+                        loading: false,
+                        
+                        // 数据
+                        songs: [],
+                        tags: [],
+                        tagDetails: [],
+                        
+                        // 主播设置相关
+                        profileForm: {
+                            name: '',
+                            description: '',
+                            avatar: '',
+                            background: ''
+                        },
+                        profileSaving: false,
+                        
+                        // 标签管理相关
+                        newTagName: '',
+                        tagAdding: false,
+                        editTagModal: {
+                            show: false,
+                            id: null,
+                            name: ''
+                        },
+                        
+                        // 歌曲管理相关
+                        songForm: {
+                            title: '',
+                            artist: '',
+                            tags: []
+                        },
+                        songAdding: false,
+                        songSearchQuery: '',
+                        editSongModal: {
+                            show: false,
+                            data: {
+                                id: null,
+                                title: '',
+                                artist: '',
+                                tags: []
+                            }
+                        },
+                        excelImporting: false,
+                        imageImporting: false
+                    }
+                },
+                
+                computed: {
+                    pageTitle() {
+                        const titles = {
+                            overview: '数据概览',
+                            profile: '主播设置',
+                            tags: '标签管理',
+                            songs: '歌曲管理'
+                        };
+                        return titles[this.currentPage] || '管理后台';
+                    },
+                    
+                    pageSubtitle() {
+                        const subtitles = {
+                            overview: '查看歌单系统的整体数据统计',
+                            profile: '管理主播头像、背景和个人信息',
+                            tags: '添加、编辑和删除歌曲标签',
+                            songs: '添加和管理歌单中的歌曲'
+                        };
+                        return subtitles[this.currentPage] || '';
+                    },
+                    
+                    tagOptions() {
+                        return this.tags.map(tag => ({
+                            label: tag,
+                            value: tag
+                        }));
+                    },
+                    
+                    filteredSongs() {
+                        if (!this.songSearchQuery.trim()) {
+                            return this.songs;
+                        }
+                        const query = this.songSearchQuery.toLowerCase();
+                        return this.songs.filter(song => 
+                            song.title.toLowerCase().includes(query) ||
+                            song.artist.toLowerCase().includes(query)
+                        );
+                    }
+                },
+                
+                async mounted() {
+                    await this.checkAuth();
+                    await this.loadInitialData();
+                },
+                
+                methods: {
+                    // 身份验证
+                    async checkAuth() {
+                        const token = sessionStorage.getItem('admin_token');
+                        if (!token) {
+                            this.goToIndex();
+                            return;
+                        }
+                    },
+                    
+                    goToIndex() {
+                        window.location.href = '/';
+                    },
+                    
+                    logout() {
+                        sessionStorage.removeItem('admin_token');
+                        sessionStorage.removeItem('admin_auth_time');
+                        this.message.success('已退出登录');
+                        setTimeout(() => this.goToIndex(), 1000);
+                    },
+                    
+                    // 导航
+                    navigateTo(page) {
+                        this.currentPage = page;
+                        this.sidebarOpen = false;
+                    },
+                    
+                    // 数据加载
+                    async loadInitialData() {
+                        this.loading = true;
+                        try {
+                            await Promise.all([
+                                this.loadTags(),
+                                this.loadSongs(),
+                                this.loadProfile(),
+                                this.loadTagDetails()
+                            ]);
+                        } catch (error) {
+                            this.message.error('数据加载失败: ' + error.message);
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+                    
+                    async refreshData() {
+                        await this.loadInitialData();
+                        this.message.success('数据已刷新');
+                    },
+                    
+                    async loadTags() {
+                        try {
+                            const response = await fetch('/api/tags');
+                            const data = await response.json();
+                            if (data.success) {
+                                this.tags = data.data || [];
+                            }
+                        } catch (error) {
+                            console.error('加载标签失败:', error);
+                        }
+                    },
+                    
+                    async loadTagDetails() {
+                        try {
+                            const response = await fetch('/api/tags/details');
+                            const data = await response.json();
+                            if (data.success) {
+                                this.tagDetails = data.data || [];
+                            }
+                        } catch (error) {
+                            console.error('加载标签详情失败:', error);
+                        }
+                    },
+                    
+                    async loadSongs() {
+                        try {
+                            // 分页加载所有歌曲
+                            let allSongs = [];
+                            let page = 1;
+                            let hasMore = true;
+                            
+                            while (hasMore) {
+                                const response = await fetch(`/api/songs?page=${page}&limit=100`);
+                                const data = await response.json();
+                                
+                                if (data.success && data.data.songs) {
+                                    allSongs = allSongs.concat(data.data.songs);
+                                    
+                                    // 检查是否还有更多数据
+                                    const { pagination } = data.data;
+                                    hasMore = page < pagination.totalPages;
+                                    page++;
+                                } else {
+                                    hasMore = false;
+                                }
+                            }
+                            
+                            this.songs = allSongs;
+                        } catch (error) {
+                            console.error('加载歌曲失败:', error);
+                            this.songs = [];
+                        }
+                    },
+                    
+                    async loadProfile() {
+                        try {
+                            const response = await fetch('/api/streamer/profile');
+                            const data = await response.json();
+                            if (data.success) {
+                                this.profileForm.name = data.data.name || '';
+                                this.profileForm.description = data.data.description || '';
+                                this.profileForm.avatar = data.data.avatar || '';
+                                this.profileForm.background = data.data.background || '';
+                            }
+                        } catch (error) {
+                            console.error('加载主播信息失败:', error);
+                        }
+                    },
+                    
+                    // 主播设置相关方法
+                    handleAvatarUpload(event) {
+                        const file = event.target.files[0];
+                        if (file) {
+                            this.uploadAvatar(file);
+                        }
+                    },
+                    
+                    handleAvatarDrop(event) {
+                        const file = event.dataTransfer.files[0];
+                        if (file && file.type.startsWith('image/')) {
+                            this.uploadAvatar(file);
+                        }
+                    },
+                    
+                    async uploadAvatar(file) {
+                        const formData = new FormData();
+                        formData.append('avatar', file);
+                        
+                        try {
+                            const response = await fetch('/api/streamer/avatar', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: formData
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.profileForm.avatar = data.avatar_url;
+                                this.message.success('头像上传成功');
+                            } else {
+                                this.message.error(data.error || '头像上传失败');
+                            }
+                        } catch (error) {
+                            this.message.error('头像上传失败: ' + error.message);
+                        }
+                    },
+                    
+                    handleBackgroundUpload(event) {
+                        const file = event.target.files[0];
+                        if (file) {
+                            this.uploadBackground(file);
+                        }
+                    },
+                    
+                    handleBackgroundDrop(event) {
+                        const file = event.dataTransfer.files[0];
+                        if (file && file.type.startsWith('image/')) {
+                            this.uploadBackground(file);
+                        }
+                    },
+                    
+                    async uploadBackground(file) {
+                        const formData = new FormData();
+                        formData.append('background', file);
+                        
+                        try {
+                            const response = await fetch('/api/streamer/background', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: formData
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.profileForm.background = data.background_url;
+                                this.message.success('背景图上传成功');
+                            } else {
+                                this.message.error(data.error || '背景图上传失败');
+                            }
+                        } catch (error) {
+                            this.message.error('背景图上传失败: ' + error.message);
+                        }
+                    },
+                    
+                    async saveProfile() {
+                        if (!this.profileForm.name.trim()) {
+                            this.message.warning('请输入主播名称');
+                            return;
+                        }
+                        
+                        this.profileSaving = true;
+                        try {
+                            const response = await fetch('/api/streamer/profile', {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: JSON.stringify({
+                                    name: this.profileForm.name,
+                                    description: this.profileForm.description
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.message.success('主播信息保存成功');
+                            } else {
+                                this.message.error(data.error || '保存失败');
+                            }
+                        } catch (error) {
+                            this.message.error('保存失败: ' + error.message);
+                        } finally {
+                            this.profileSaving = false;
+                        }
+                    },
+                    
+                    // 标签管理相关方法
+                    async addTag() {
+                        if (!this.newTagName.trim()) {
+                            this.message.warning('请输入标签名称');
+                            return;
+                        }
+                        
+                        this.tagAdding = true;
+                        try {
+                            const response = await fetch('/api/tags', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: JSON.stringify({ name: this.newTagName })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.newTagName = '';
+                                this.message.success('标签添加成功');
+                                await this.loadTags();
+                                await this.loadTagDetails();
+                            } else {
+                                this.message.error(data.error || '添加失败');
+                            }
+                        } catch (error) {
+                            this.message.error('添加失败: ' + error.message);
+                        } finally {
+                            this.tagAdding = false;
+                        }
+                    },
+                    
+                    editTag(tag) {
+                        this.editTagModal.show = true;
+                        this.editTagModal.id = tag.id;
+                        this.editTagModal.name = tag.name;
+                    },
+                    
+                    async updateTag() {
+                        if (!this.editTagModal.name.trim()) {
+                            this.message.warning('请输入标签名称');
+                            return;
+                        }
+                        
+                        try {
+                            const response = await fetch(`/api/tags/${this.editTagModal.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: JSON.stringify({ name: this.editTagModal.name })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.editTagModal.show = false;
+                                this.message.success('标签更新成功');
+                                await this.loadTags();
+                                await this.loadTagDetails();
+                            } else {
+                                this.message.error(data.error || '更新失败');
+                            }
+                        } catch (error) {
+                            this.message.error('更新失败: ' + error.message);
+                        }
+                    },
+                    
+                    async deleteTag(tagName) {
+                        try {
+                            const response = await fetch(`/api/tags/${encodeURIComponent(tagName)}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                }
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.message.success('标签删除成功');
+                                await this.loadTags();
+                                await this.loadTagDetails();
+                            } else {
+                                this.message.error(data.error || '删除失败');
+                            }
+                        } catch (error) {
+                            this.message.error('删除失败: ' + error.message);
+                        }
+                    },
+                    
+                    // 歌曲管理相关方法
+                    async addSong() {
+                        if (!this.songForm.title.trim() || !this.songForm.artist.trim()) {
+                            this.message.warning('请填写歌曲名称和歌手');
+                            return;
+                        }
+                        
+                        this.songAdding = true;
+                        try {
+                            const response = await fetch('/api/songs', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: JSON.stringify({
+                                    title: this.songForm.title,
+                                    artist: this.songForm.artist,
+                                    tags: this.songForm.tags
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.songForm = { title: '', artist: '', tags: [] };
+                                this.message.success('歌曲添加成功');
+                                await this.loadSongs();
+                            } else {
+                                this.message.error(data.error || '添加失败');
+                            }
+                        } catch (error) {
+                            this.message.error('添加失败: ' + error.message);
+                        } finally {
+                            this.songAdding = false;
+                        }
+                    },
+                    
+                    editSong(song) {
+                        this.editSongModal.show = true;
+                        this.editSongModal.data = {
+                            id: song.id,
+                            title: song.title,
+                            artist: song.artist,
+                            tags: [...(song.tags || [])]
+                        };
+                    },
+                    
+                    async updateSong() {
+                        if (!this.editSongModal.data.title.trim() || !this.editSongModal.data.artist.trim()) {
+                            this.message.warning('请填写歌曲名称和歌手');
+                            return;
+                        }
+                        
+                        try {
+                            const response = await fetch(`/api/songs/${this.editSongModal.data.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: JSON.stringify({
+                                    title: this.editSongModal.data.title,
+                                    artist: this.editSongModal.data.artist,
+                                    tags: this.editSongModal.data.tags
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.editSongModal.show = false;
+                                this.message.success('歌曲更新成功');
+                                await this.loadSongs();
+                            } else {
+                                this.message.error(data.error || '更新失败');
+                            }
+                        } catch (error) {
+                            this.message.error('更新失败: ' + error.message);
+                        }
+                    },
+                    
+                    async deleteSong(songId) {
+                        try {
+                            const response = await fetch(`/api/songs/${songId}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                }
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.message.success('歌曲删除成功');
+                                await this.loadSongs();
+                            } else {
+                                this.message.error(data.error || '删除失败');
+                            }
+                        } catch (error) {
+                            this.message.error('删除失败: ' + error.message);
+                        }
+                    },
+
+                    // 批量导入方法
+                    async handleExcelImport(event) {
+                        const file = event.target.files[0];
+                        if (!file) return;
+
+                        this.excelImporting = true;
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            const response = await fetch('/api/songs/import/excel', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: formData
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.message.success('歌曲批量导入成功！');
+                                await this.loadSongs();
+                            } else {
+                                this.message.error(data.error || '歌曲批量导入失败');
+                            }
+                        } catch (error) {
+                            this.message.error('歌曲批量导入失败: ' + error.message);
+                        } finally {
+                            this.excelImporting = false;
+                        }
+                    },
+
+                    async handleImageImport(event) {
+                        const file = event.target.files[0];
+                        if (!file) return;
+
+                        this.imageImporting = true;
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            const response = await fetch('/api/songs/import/image', {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: formData
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.message.success('歌曲批量导入成功！');
+                                await this.loadSongs();
+                            } else {
+                                this.message.error(data.error || '歌曲批量导入失败');
+                            }
+                        } catch (error) {
+                            this.message.error('歌曲批量导入失败: ' + error.message);
+                        } finally {
+                            this.imageImporting = false;
+                        }
+                    }
+                }
+            };
+
+            createApp({
+                components: {
+                    NConfigProvider,
+                    NMessageProvider,
+                    AdminContent
+                },
+                data() {
+                    return {
+                        theme: null,
+                        themeOverrides: {
+                            common: {
+                                primaryColor: '#667eea',
+                                primaryColorHover: '#5a6fd8',
+                                primaryColorPressed: '#4d60c4'
+                            }
+                        }
+                    }
+                }
+            }).mount('#app');
+        }
+    </script>
+</body>
+</html>

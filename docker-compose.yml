@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  ale-song-list:
+    build: .
+    container_name: ale-song-list
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ADMIN_SECRET_KEY=your_admin_secret_key_here
+      - MAX_FILE_SIZE=10485760
+    volumes:
+      # 持久化数据库文件
+      - ./backend/data:/app/backend/data
+      # 持久化上传文件
+      - ./frontend/uploads:/app/frontend/uploads
+      # 持久化日志文件
+      - ./backend/logs:/app/backend/logs
+    networks:
+      - ale-network
+
+networks:
+  ale-network:
+    driver: bridge
