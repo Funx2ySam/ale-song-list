@@ -817,18 +817,19 @@
                     // 通用API调用方法，自动处理401错误
                     async apiCall(url, options = {}) {
                         const token = sessionStorage.getItem('admin_token');
-                        const defaultOptions = {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(token && { 'Authorization': `Bearer ${token}` })
-                            }
+                        
+                        // 检查是否是FormData，如果是就不设置Content-Type
+                        const isFormData = options.body instanceof FormData;
+                        
+                        const defaultHeaders = {
+                            ...(token && { 'Authorization': `Bearer ${token}` }),
+                            ...(!isFormData && { 'Content-Type': 'application/json' })
                         };
 
                         const finalOptions = {
-                            ...defaultOptions,
                             ...options,
                             headers: {
-                                ...defaultOptions.headers,
+                                ...defaultHeaders,
                                 ...options.headers
                             }
                         };
@@ -857,37 +858,6 @@
                         if (!token) {
                             this.goToIndex();
                             return;
-                        }
-
-                        // 验证token有效性
-                        try {
-                            const response = await fetch('/api/auth/verify', {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                // token无效，清除并跳转
-                                sessionStorage.removeItem('admin_token');
-                                sessionStorage.removeItem('admin_auth_time');
-                                this.message.error('登录已过期，请重新登录');
-                                setTimeout(() => this.goToIndex(), 1000);
-                                return;
-                            }
-                            
-                            const data = await response.json();
-                            if (!data.success || !data.valid) {
-                                // token无效，清除并跳转
-                                sessionStorage.removeItem('admin_token');
-                                sessionStorage.removeItem('admin_auth_time');
-                                this.message.error('登录已过期，请重新登录');
-                                setTimeout(() => this.goToIndex(), 1000);
-                                return;
-                            }
-                        } catch (error) {
-                            console.error('验证token失败:', error);
-                            // 网络错误等情况下，暂时允许继续，但在后续API调用中会自然报错
                         }
                     },
                     
@@ -1021,8 +991,7 @@
                         try {
                             const response = await this.apiCall('/api/streamer/avatar', {
                                 method: 'POST',
-                                body: formData,
-                                headers: {} // FormData自动设置Content-Type，所以清空headers
+                                body: formData
                             });
                             
                             const data = await response.json();
@@ -1060,8 +1029,7 @@
                         try {
                             const response = await this.apiCall('/api/streamer/background', {
                                 method: 'POST',
-                                body: formData,
-                                headers: {} // FormData自动设置Content-Type，所以清空headers
+                                body: formData
                             });
                             
                             const data = await response.json();
@@ -1303,8 +1271,7 @@
                             formData.append('file', file);
                             const response = await this.apiCall('/api/songs/import/excel', {
                                 method: 'POST',
-                                body: formData,
-                                headers: {} // FormData自动设置Content-Type
+                                body: formData
                             });
                             const data = await response.json();
                             if (data.success) {
@@ -1332,8 +1299,7 @@
                             formData.append('file', file);
                             const response = await this.apiCall('/api/songs/import/image', {
                                 method: 'POST',
-                                body: formData,
-                                headers: {} // FormData自动设置Content-Type
+                                body: formData
                             });
                             const data = await response.json();
                             if (data.success) {
