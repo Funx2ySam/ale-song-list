@@ -102,4 +102,50 @@ router.post('/logout', (req, res) => {
     });
 });
 
+// 更新管理密钥
+router.put('/change-key', authenticateToken, requireAdmin, (req, res) => {
+    try {
+        const { currentKey, newKey } = req.body;
+
+        if (!currentKey || !newKey) {
+            return res.status(400).json({
+                success: false,
+                error: '请提供当前密钥和新密钥'
+            });
+        }
+
+        if (newKey.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: '新密钥长度至少6位'
+            });
+        }
+
+        // 验证当前密钥
+        const adminKey = process.env.ADMIN_SECRET_KEY || 'admin123';
+        if (currentKey !== adminKey) {
+            return res.status(400).json({
+                success: false,
+                error: '当前密钥不正确'
+            });
+        }
+
+        // 注意：在生产环境中，应该将新密钥写入配置文件或环境变量
+        // 这里只是演示，实际使用时需要持久化存储
+        process.env.ADMIN_SECRET_KEY = newKey;
+
+        res.json({
+            success: true,
+            message: '管理密钥修改成功，建议重新登录'
+        });
+
+    } catch (error) {
+        console.error('修改管理密钥失败:', error);
+        res.status(500).json({
+            success: false,
+            error: '修改管理密钥失败'
+        });
+    }
+});
+
 module.exports = router;

@@ -98,16 +98,16 @@ const validateTag = (req, res, next) => {
     next();
 };
 
-// 主播信息验证
+// 用户信息验证
 const validateStreamerProfile = (req, res, next) => {
     const { name, description } = req.body;
     const errors = [];
 
-    // 验证主播名称
-    const nameError = validateRequired(name, '主播名称');
+    // 验证用户名称
+    const nameError = validateRequired(name, '用户名称');
     if (nameError) errors.push(nameError);
     else {
-        const nameLengthError = validateLength(name, '主播名称', 1, 50);
+        const nameLengthError = validateLength(name, '用户名称', 1, 50);
         if (nameLengthError) errors.push(nameLengthError);
     }
 

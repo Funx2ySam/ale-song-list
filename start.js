@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 const { spawn } = require('child_process');
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-console.log('🚀 正在启动主播歌单系统...\n');
+// 检查数据库是否存在，如果不存在则初始化
+console.log('🚀 正在启动歌单系统...\n');
 
-// 检查数据库是否存在
 const dbPath = './backend/data/database.sqlite';
 const dbExists = fs.existsSync(dbPath);
 

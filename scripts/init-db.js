@@ -34,11 +34,11 @@ try {
     // 启用外键约束
     db.exec('PRAGMA foreign_keys = ON');
 
-    // 创建主播信息表
+    // 创建用户信息表
     const createStreamerTable = `
         CREATE TABLE IF NOT EXISTS streamer_profile (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL DEFAULT '主播歌单',
+            name TEXT NOT NULL DEFAULT '歌单系统',
             description TEXT DEFAULT '专业歌手 | 各种风格都能唱 | 欢迎点歌互动~',
             avatar_url TEXT DEFAULT '',
             background_url TEXT DEFAULT '',
@@ -48,7 +48,7 @@ try {
     `;
     
     db.exec(createStreamerTable);
-    console.log('✓ 创建主播信息表');
+    console.log('✓ 创建用户信息表');
 
     // 创建标签表
     const createTagsTable = `
@@ -93,15 +93,15 @@ try {
     db.exec(createSongTagsTable);
     console.log('✓ 创建歌曲标签关联表');
 
-    // 检查并插入默认主播信息
+    // 检查并插入默认用户信息
     const existingStreamer = db.prepare('SELECT COUNT(*) as count FROM streamer_profile').get();
     if (existingStreamer.count === 0) {
         const insertStreamer = db.prepare(`
             INSERT INTO streamer_profile (name, description) 
             VALUES (?, ?)
         `);
-        insertStreamer.run('主播歌单', '专业歌手 | 各种风格都能唱 | 欢迎点歌互动~');
-        console.log('✓ 插入默认主播信息');
+        insertStreamer.run('歌单系统', '专业歌手 | 各种风格都能唱 | 欢迎点歌互动~');
+        console.log('✓ 插入默认用户信息');
     }
 
     // 检查并插入默认标签

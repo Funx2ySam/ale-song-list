@@ -49,7 +49,7 @@ const upload = multer({
     }
 });
 
-// 获取主播信息（公开接口）
+// 获取用户信息（公开接口）
 router.get('/profile', (req, res) => {
     try {
         const profile = db.prepare('SELECT * FROM streamer_profile WHERE id = 1').get();
@@ -57,7 +57,7 @@ router.get('/profile', (req, res) => {
         if (!profile) {
             return res.status(404).json({
                 success: false,
-                error: '主播信息不存在'
+                error: '用户信息不存在'
             });
         }
 
@@ -73,10 +73,10 @@ router.get('/profile', (req, res) => {
         });
 
     } catch (error) {
-        console.error('获取主播信息失败:', error);
+        console.error('获取用户信息失败:', error);
         res.status(500).json({
             success: false,
-            error: '获取主播信息失败'
+            error: '获取用户信息失败'
         });
     }
 });
@@ -85,7 +85,7 @@ router.get('/profile', (req, res) => {
 router.use(authenticateToken);
 router.use(requireAdmin);
 
-// 更新主播基本信息
+// 更新用户基本信息
 router.put('/profile', validateStreamerProfile, (req, res) => {
     try {
         const { name, description } = req.body;
@@ -101,20 +101,20 @@ router.put('/profile', validateStreamerProfile, (req, res) => {
         if (result.changes === 0) {
             return res.status(404).json({
                 success: false,
-                error: '主播信息更新失败'
+                error: '用户信息更新失败'
             });
         }
 
         res.json({
             success: true,
-            message: '主播信息更新成功'
+            message: '用户信息更新成功'
         });
 
     } catch (error) {
-        console.error('更新主播信息失败:', error);
+        console.error('更新用户信息失败:', error);
         res.status(500).json({
             success: false,
-            error: '更新主播信息失败'
+            error: '更新用户信息失败'
         });
     }
 });

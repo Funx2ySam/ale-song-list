@@ -1,6 +1,6 @@
-# 主播歌单管理系统
+# 歌单管理系统
 
-一个现代化的主播歌单管理系统，支持歌曲管理、标签分类、Excel导入等功能。
+一个现代化的歌单管理系统，支持歌曲管理、标签分类、Excel导入等功能。
 
 ## ✨ 功能特色
 
@@ -15,7 +15,8 @@
 - **身份验证**：密钥登录，24小时有效期
 - **歌曲管理**：增删改查歌曲，批量操作
 - **标签管理**：创建、编辑、删除标签
-- **主播设置**：头像、背景图片、个人信息管理
+- **用户设置**：头像、背景图片、个人信息管理
+- **安全设置**：修改管理员登录密钥
 - **数据统计**：歌曲数量、标签统计等
 - **Excel导入**：批量导入歌曲数据（准备中）
 
@@ -29,7 +30,7 @@
 
 1. **克隆项目**
 ```bash
-git clone <repository-url>
+git clone https://github.com/Funx2ySam/ale-song-list.git
 cd ale-song-list
 ```
 
@@ -47,7 +48,7 @@ npm start
 
 1. **克隆项目**
 ```bash
-git clone <repository-url>
+git clone https://github.com/Funx2ySam/ale-song-list.git
 cd ale-song-list
 ```
 
@@ -92,8 +93,8 @@ environment:
 - 启动服务器
 
 4. **访问系统**
-- 歌单页面：http://localhost:3001
-- 管理后台：http://localhost:3001/admin
+- 歌单页面：http://localhost:3000
+- 管理后台：http://localhost:3000/admin
 
 ### 开发模式
 
@@ -108,7 +109,7 @@ npm run dev  # 使用 nodemon 自动重启
 
 ```env
 # 服务端口
-PORT=3001
+PORT=3000
 
 # 管理密钥
 ADMIN_KEY=your-admin-key
@@ -127,7 +128,7 @@ NODE_ENV=development
 ```
 
 ### 默认配置
-- **端口**：3001
+- **端口**：3000
 - **管理密钥**：admin123
 - **文件上传限制**：10MB
 - **Token有效期**：24小时
@@ -136,62 +137,49 @@ NODE_ENV=development
 
 ```
 ale-song-list/
-├── backend/                # 后端代码
-│   ├── app.js             # 应用入口
+├── frontend/                # 前端文件
+│   ├── index.html          # 歌单展示页面
+│   ├── admin.html          # 管理后台页面
+│   └── uploads/            # 文件上传目录
+├── backend/                # 后端文件
+│   ├── app.js             # 主应用入口
 │   ├── config/            # 配置文件
-│   ├── middleware/        # 中间件
 │   ├── models/            # 数据模型
-│   ├── routes/            # 路由
-│   └── utils/             # 工具函数
-├── frontend/              # 前端代码
-│   ├── index.html         # 主页面
-│   ├── admin.html         # 管理页面
-│   └── uploads/           # 上传文件
+│   ├── routes/            # API路由
+│   ├── middleware/        # 中间件
+│   ├── utils/             # 工具函数
+│   ├── data/              # 数据库文件
+│   └── logs/              # 日志文件
 ├── scripts/               # 脚本文件
-│   ├── init-db.js         # 数据库初始化
-│   └── seed-data.js       # 种子数据
-├── start.js               # 启动脚本
-└── package.json           # 项目配置
+│   └── init-db.js         # 数据库初始化
+├── package.json           # 项目配置
+├── start.js              # 启动脚本
+└── README.md             # 项目说明
 ```
 
-## 🎯 使用指南
+## 🔑 使用说明
 
 ### 访问歌单页面
-1. 打开浏览器访问 http://localhost:3001
+1. 打开浏览器访问 http://localhost:3000
 2. 浏览歌曲列表
 3. 使用搜索框查找歌曲
-4. 点击标签筛选歌曲
-5. 点击歌曲卡片复制歌曲信息
+4. 点击标签进行筛选
+5. 点击歌曲名称复制到剪贴板
 
 ### 管理后台操作
-
-#### 登录管理后台
-1. 在歌单页面点击右下角设置按钮
+1. 访问 http://localhost:3000/admin
 2. 输入管理密钥（默认：admin123）
-3. 登录成功后自动跳转到管理后台
+3. 管理歌曲、标签和用户信息
+4. 在安全设置中修改管理密钥
 
-#### 歌曲管理
-- **添加歌曲**：点击"添加歌曲"按钮，填写信息
-- **编辑歌曲**：在歌曲列表中点击"编辑"
-- **删除歌曲**：点击"删除"或使用批量删除
-- **搜索歌曲**：使用搜索框快速查找
+## 📡 API接口
 
-#### 标签管理
-- **添加标签**：输入标签名称后点击"添加标签"
-- **删除标签**：点击标签右侧的 × 号
-
-#### 主播设置
-- **基本信息**：修改名称和简介
-- **头像上传**：支持拖拽上传图片
-- **背景设置**：设置页面背景图
-
-## 🔌 API 接口
-
-### 公开接口（无需身份验证）
+### 公开接口
 - `GET /api/health` - 健康检查
 - `GET /api/songs` - 获取歌曲列表
+- `GET /api/songs/:id` - 获取单首歌曲
 - `GET /api/tags` - 获取标签列表
-- `GET /api/streamer/profile` - 获取主播信息
+- `GET /api/streamer/profile` - 获取用户信息
 - `POST /api/auth/login` - 管理员登录
 
 ### 管理接口（需要身份验证）
@@ -200,9 +188,10 @@ ale-song-list/
 - `DELETE /api/songs/:id` - 删除歌曲
 - `POST /api/tags` - 添加标签
 - `DELETE /api/tags/:name` - 删除标签
-- `PUT /api/streamer/profile` - 更新主播信息
+- `PUT /api/streamer/profile` - 更新用户信息
 - `POST /api/streamer/avatar` - 上传头像
 - `POST /api/streamer/background` - 上传背景
+- `PUT /api/auth/change-key` - 修改管理密钥
 
 ## 🛠️ 技术栈
 
@@ -262,21 +251,19 @@ A: 使用 `PORT=其他端口 npm start` 指定其他端口
 A: 位于 `backend/data/database.sqlite`
 
 ### Q: 如何重置管理密钥？
-A: 修改 `.env` 文件中的 `ADMIN_KEY` 或环境变量
+A: 在管理后台的"安全设置"中修改，或修改 `.env` 文件中的 `ADMIN_KEY`
 
 ### Q: 上传的文件存储在哪里？
 A: 存储在 `frontend/uploads/` 目录下
 
 ### Q: 如何备份数据？
-A: 复制整个 `backend/data/` 目录即可
+A: 备份 `backend/data/` 目录和 `frontend/uploads/` 目录即可
 
 ## 📞 支持
 
-如有问题或建议，请：
-- 提交 Issue
-- 发送邮件到 [your-email@example.com]
-- 加入讨论群：[群号]
+如果您在使用过程中遇到问题，可以：
+- 提交 Issue 到 GitHub 仓库
+- 查看项目文档和日志文件
+- 联系项目维护者
 
----
-
-**享受使用主播歌单管理系统！** 🎵✨
+**享受使用歌单管理系统！** 🎵✨

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>主播管理后台</title>
+    <title>管理后台</title>
     <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Naive UI -->
@@ -302,7 +302,7 @@
                                 </div>
                                 <div class="menu-item" :class="{ active: currentPage === 'profile' }" @click="navigateTo('profile')">
                                     <span class="menu-icon">👤</span>
-                                    <span>主播设置</span>
+                                    <span>用户设置</span>
                                 </div>
                                 <div class="menu-item" :class="{ active: currentPage === 'tags' }" @click="navigateTo('tags')">
                                     <span class="menu-icon">🏷️</span>
@@ -311,6 +311,10 @@
                                 <div class="menu-item" :class="{ active: currentPage === 'songs' }" @click="navigateTo('songs')">
                                     <span class="menu-icon">🎵</span>
                                     <span>歌曲管理</span>
+                                </div>
+                                <div class="menu-item" :class="{ active: currentPage === 'security' }" @click="navigateTo('security')">
+                                    <span class="menu-icon">🔒</span>
+                                    <span>安全设置</span>
                                 </div>
                             </div>
                         </div>
@@ -398,7 +402,7 @@
                                 </n-card>
                             </div>
 
-                            <!-- 主播设置页面 -->
+                            <!-- 用户设置页面 -->
                             <div v-if="currentPage === 'profile'">
                                 <div class="form-section">
                                     <div class="section-title">头像设置</div>
@@ -459,8 +463,8 @@
                                 <div class="form-section">
                                     <div class="section-title">基本信息</div>
                                     <n-form :model="profileForm" label-placement="top">
-                                        <n-form-item label="主播名称">
-                                            <n-input v-model:value="profileForm.name" placeholder="请输入主播名称" />
+                                        <n-form-item label="用户名称">
+                                            <n-input v-model:value="profileForm.name" placeholder="请输入用户名称" />
                                         </n-form-item>
                                         <n-form-item label="个人简介">
                                             <n-input 
@@ -588,6 +592,55 @@
                                     <n-empty v-if="filteredSongs.length === 0" description="暂无歌曲" />
                                 </div>
                             </div>
+
+                            <!-- 安全设置页面 -->
+                            <div v-if="currentPage === 'security'">
+                                <div class="form-section">
+                                    <div class="section-title">修改管理密钥</div>
+                                    <n-form :model="securityForm" label-placement="top" @submit.prevent="changeAdminKey">
+                                        <n-form-item label="当前密钥">
+                                            <n-input 
+                                                v-model:value="securityForm.currentKey" 
+                                                type="password" 
+                                                placeholder="请输入当前管理密钥"
+                                                show-password-on="click"
+                                            />
+                                        </n-form-item>
+                                        <n-form-item label="新密钥">
+                                            <n-input 
+                                                v-model:value="securityForm.newKey" 
+                                                type="password" 
+                                                placeholder="请输入新管理密钥（至少6位）"
+                                                show-password-on="click"
+                                            />
+                                        </n-form-item>
+                                        <n-form-item label="确认新密钥">
+                                            <n-input 
+                                                v-model:value="securityForm.confirmKey" 
+                                                type="password" 
+                                                placeholder="请再次输入新管理密钥"
+                                                show-password-on="click"
+                                            />
+                                        </n-form-item>
+                                        <n-form-item>
+                                            <n-button type="primary" @click="changeAdminKey" :loading="keyChanging">
+                                                修改密钥
+                                            </n-button>
+                                            <n-button @click="resetSecurityForm" style="margin-left: 12px;">
+                                                重置
+                                            </n-button>
+                                        </n-form-item>
+                                    </n-form>
+                                    <div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; font-size: 14px; color: #666;">
+                                        <div style="font-weight: 500; color: #333; margin-bottom: 8px;">⚠️ 安全提示</div>
+                                        <ul style="margin: 0; padding-left: 20px;">
+                                            <li>新密钥长度至少6位，建议使用字母、数字组合</li>
+                                            <li>修改密钥后需要重新登录</li>
+                                            <li>请妥善保管新密钥，遗失后需要服务器管理员重置</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- 编辑标签模态框 -->
@@ -701,7 +754,15 @@
                             }
                         },
                         excelImporting: false,
-                        imageImporting: false
+                        imageImporting: false,
+
+                        // 安全设置相关
+                        securityForm: {
+                            currentKey: '',
+                            newKey: '',
+                            confirmKey: ''
+                        },
+                        keyChanging: false
                     }
                 },
                 
@@ -709,9 +770,10 @@
                     pageTitle() {
                         const titles = {
                             overview: '数据概览',
-                            profile: '主播设置',
+                            profile: '用户设置',
                             tags: '标签管理',
-                            songs: '歌曲管理'
+                            songs: '歌曲管理',
+                            security: '安全设置'
                         };
                         return titles[this.currentPage] || '管理后台';
                     },
@@ -719,9 +781,10 @@
                     pageSubtitle() {
                         const subtitles = {
                             overview: '查看歌单系统的整体数据统计',
-                            profile: '管理主播头像、背景和个人信息',
+                            profile: '管理用户头像、背景和个人信息',
                             tags: '添加、编辑和删除歌曲标签',
-                            songs: '添加和管理歌单中的歌曲'
+                            songs: '添加和管理歌单中的歌曲',
+                            security: '修改管理员登录密钥'
                         };
                         return subtitles[this.currentPage] || '';
                     },
@@ -864,11 +927,11 @@
                                 this.profileForm.background = data.data.background || '';
                             }
                         } catch (error) {
-                            console.error('加载主播信息失败:', error);
+                            console.error('加载用户信息失败:', error);
                         }
                     },
                     
-                    // 主播设置相关方法
+                    // 用户设置相关方法
                     handleAvatarUpload(event) {
                         const file = event.target.files[0];
                         if (file) {
@@ -949,7 +1012,7 @@
                     
                     async saveProfile() {
                         if (!this.profileForm.name.trim()) {
-                            this.message.warning('请输入主播名称');
+                            this.message.warning('请输入用户名称');
                             return;
                         }
                         
@@ -969,7 +1032,7 @@
                             
                             const data = await response.json();
                             if (data.success) {
-                                this.message.success('主播信息保存成功');
+                                this.message.success('用户信息保存成功');
                             } else {
                                 this.message.error(data.error || '保存失败');
                             }
@@ -1230,6 +1293,58 @@
                         } finally {
                             this.imageImporting = false;
                         }
+                    },
+
+                    // 安全设置相关方法
+                    async changeAdminKey() {
+                        if (!this.securityForm.currentKey.trim()) {
+                            this.message.warning('请输入当前管理密钥');
+                            return;
+                        }
+                        if (!this.securityForm.newKey.trim() || this.securityForm.newKey.length < 6) {
+                            this.message.warning('新密钥长度至少6位');
+                            return;
+                        }
+                        if (this.securityForm.newKey.trim() !== this.securityForm.confirmKey.trim()) {
+                            this.message.warning('两次输入的新密钥不一致');
+                            return;
+                        }
+
+                        this.keyChanging = true;
+                        try {
+                            const response = await fetch('/api/auth/change-key', {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                                },
+                                body: JSON.stringify({
+                                    currentKey: this.securityForm.currentKey,
+                                    newKey: this.securityForm.newKey
+                                })
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.message.success('管理密钥修改成功！请重新登录。');
+                                sessionStorage.removeItem('admin_token');
+                                sessionStorage.removeItem('admin_auth_time');
+                                setTimeout(() => this.goToIndex(), 1500);
+                            } else {
+                                this.message.error(data.error || '修改失败');
+                            }
+                        } catch (error) {
+                            this.message.error('修改失败: ' + error.message);
+                        } finally {
+                            this.keyChanging = false;
+                        }
+                    },
+
+                    resetSecurityForm() {
+                        this.securityForm = {
+                            currentKey: '',
+                            newKey: '',
+                            confirmKey: ''
+                        };
                     }
                 }
             };
