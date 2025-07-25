@@ -6,7 +6,7 @@ const logger = require('./utils/logger');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3001; // 改为3001避免常见端口冲突
+const PORT = process.env.PORT || 3000;
 
 // 确保上传目录存在
 const uploadDir = process.env.UPLOAD_PATH || './frontend/uploads';
@@ -134,7 +134,7 @@ app.use((err, req, res, next) => {
 });
 
 // 启动服务器，带端口冲突检测
-const server = app.listen(PORT, '127.0.0.1', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     logger.info('服务器启动成功', {
         port: PORT,
         environment: process.env.NODE_ENV,
