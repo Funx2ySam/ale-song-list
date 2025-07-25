@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 // 管理员登录
