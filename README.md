@@ -1,6 +1,6 @@
 # 歌单管理系统
 
-一个现代化的歌单管理系统，支持歌曲管理、标签分类、Excel导入等功能。
+一个现代化的歌单管理系统，支持歌曲管理、标签分类、Excel导入、图片OCR识别等功能。
 
 ## ✨ 功能特色
 
@@ -18,7 +18,8 @@
 - **用户设置**：头像、背景图片、个人信息管理
 - **安全设置**：修改管理员登录密钥
 - **数据统计**：歌曲数量、标签统计等
-- **Excel导入**：批量导入歌曲数据（准备中）
+- **Excel导入**：批量导入歌曲数据
+- **图片OCR**：支持歌单截图的智能识别和导入
 
 ## 🚀 快速部署
 
@@ -38,7 +39,7 @@ mkdir -p data uploads logs
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-3. **访问系统**
+4. **访问系统**
 - 歌单页面：http://localhost:3000
 - 管理后台：http://localhost:3000/admin
 - 默认密钥：admin123
@@ -48,20 +49,33 @@ docker-compose -f docker-compose.prod.yml up -d
 ```bash
 git clone https://github.com/Funx2ySam/ale-song-list.git
 cd ale-song-list
+
+# 安装依赖（包含阿里云OCR SDK）
 npm install
+
+# 配置环境变量（可选，配置后可使用OCR功能）
+# cp .env.example .env && 编辑 .env 文件
+
+# 启动服务
 npm start
 ```
 
 ## 🔧 配置说明
 
 ### 环境变量
-可以在 `docker-compose.prod.yml` 中修改：
+可以在 `docker-compose.prod.yml` 中修改，或创建 `.env` 文件：
 
 ```yaml
 environment:
   - NODE_ENV=production
   - ADMIN_SECRET_KEY=your_custom_key  # 修改管理密钥
+  # OCR配置（可选）
+  - ALIYUN_ACCESS_KEY_ID=your_access_key_id
+  - ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
+  - ALIYUN_OCR_ENDPOINT=ocr-api.cn-hangzhou.aliyuncs.com
 ```
+
+**注意**：OCR图片识别功能为可选功能，如不需要可忽略相关配置。
 
 ### 默认配置
 - **端口**：3000
@@ -87,6 +101,12 @@ environment:
 - `POST /api/streamer/background` - 上传背景
 - `PUT /api/auth/change-key` - 修改管理密钥
 
+### 导入接口
+- `GET /api/songs/import/template` - 下载Excel模板
+- `POST /api/songs/import/excel` - Excel批量导入
+- `POST /api/songs/import/image` - 图片OCR识别
+- `POST /api/songs/import/image/confirm` - 确认导入OCR识别结果
+
 ## 🛠️ 技术栈
 
 ### 前端
@@ -97,6 +117,7 @@ environment:
 - **Node.js + Express** - 服务器框架
 - **Better-SQLite3** - 轻量级数据库
 - **JWT** - 身份认证
+- **阿里云OCR SDK** - 图片文字识别
 
 ## 🆘 常见问题
 
@@ -111,6 +132,9 @@ A: 备份 `data`、`uploads`、`logs` 三个目录即可
 
 ### Q: 如何更新到最新版本？
 A: 运行 `docker-compose -f docker-compose.prod.yml pull && docker-compose -f docker-compose.prod.yml up -d`
+
+### Q: 图片识别功能不可用怎么办？
+A: 图片识别功能为可选功能，如不需要可以正常使用系统的其他功能
 
 ---
 

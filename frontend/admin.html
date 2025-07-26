@@ -214,6 +214,25 @@
             gap: 8px;
         }
 
+        .ocr-song-item {
+            padding: 12px;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ocr-song-item:hover {
+            border-color: #d4d4d4;
+            background-color: #fafafa;
+        }
+
+        .ocr-song-item.selected {
+            border-color: #667eea;
+            background-color: #f6f7ff;
+        }
+
         .tag-item {
             display: flex;
             justify-content: space-between;
@@ -266,6 +285,8 @@
                 NGrid,
                 NGridItem,
                 NModal,
+                NAlert,
+                NCheckbox,
                 NMessageProvider,
                 useMessage
             } = naive;
@@ -514,6 +535,16 @@
                                 <div class="form-section">
                                     <div class="section-title">批量导入歌曲</div>
                                     <n-space size="large">
+                                        <n-button type="default" @click="downloadExcelTemplate">
+                                            <template #icon>
+                                                <n-icon>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z M12,15L17,10H14V6H10V10H7L12,15Z"/>
+                                                    </svg>
+                                                </n-icon>
+                                            </template>
+                                            下载模板
+                                        </n-button>
                                         <n-button type="info" @click="$refs.excelInput.click()" :loading="excelImporting">
                                             <template #icon>
                                                 <n-icon>
@@ -538,8 +569,9 @@
                                         <input ref="imageInput" type="file" style="display: none" accept="image/*" @change="handleImageImport">
                                     </n-space>
                                     <div style="margin-top: 12px; font-size: 14px; color: #666;">
-                                        <p style="margin: 5px 0;">Excel导入：支持 .xlsx/.xls 格式，表头应包含：歌曲名称、歌手、标签（用逗号分隔）</p>
-                                        <p style="margin: 5px 0;">图片识别：支持歌单截图的OCR识别，自动提取歌曲信息</p>
+                                        <p style="margin: 5px 0;">📥 Excel导入：支持 .xlsx/.xls 格式，歌曲名称为必填项，歌手可为空，标签用逗号分隔</p>
+                                        <p style="margin: 5px 0;">🖼️ 图片识别：支持歌单截图的OCR识别，自动提取歌曲信息</p>
+                                        <p style="margin: 5px 0;">📋 建议：先下载模板，按格式填写后再导入，相同歌名+歌手的歌曲会自动跳过</p>
                                     </div>
                                 </div>
 
@@ -680,6 +712,74 @@
                                 </n-space>
                             </template>
                         </n-modal>
+
+                        <!-- OCR识别结果模态框 -->
+                        <n-modal v-model:show="ocrResultModal.show" style="width: 800px;">
+                            <n-card title="图片识别结果" :bordered="false" size="huge">
+                                <template #header-extra>
+                                    <n-button quaternary circle @click="ocrResultModal.show = false">
+                                        <template #icon>
+                                            <n-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg></n-icon>
+                                        </template>
+                                    </n-button>
+                                </template>
+
+                                <!-- 识别统计信息 -->
+                                <n-alert type="info" style="margin-bottom: 20px;">
+                                    <template #icon>
+                                        <n-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></svg></n-icon>
+                                    </template>
+                                    <div>
+                                        <div>识别到文字行数：{{ ocrResultModal.data.totalTextLines }}，提取歌曲数：{{ ocrResultModal.data.songCount }}</div>
+                                        <div v-if="ocrResultModal.data.confidence">识别置信度：{{ (ocrResultModal.data.confidence * 100).toFixed(1) }}%</div>
+                                    </div>
+                                </n-alert>
+
+                                <!-- 操作按钮 -->
+                                <n-space style="margin-bottom: 20px;">
+                                    <n-button @click="toggleSelectAll" size="small">
+                                        {{ ocrResultModal.selectedSongs.length === ocrResultModal.data.extractedSongs.length ? '全不选' : '全选' }}
+                                    </n-button>
+                                    <n-text depth="3">已选择 {{ ocrResultModal.selectedSongs.length }} / {{ ocrResultModal.data.extractedSongs.length }} 首歌曲</n-text>
+                                </n-space>
+
+                                <!-- 歌曲列表 -->
+                                <div style="max-height: 400px; overflow-y: auto;">
+                                    <div v-for="(song, index) in ocrResultModal.data.extractedSongs" :key="index" 
+                                         class="ocr-song-item" 
+                                         :class="{ selected: ocrResultModal.selectedSongs.includes(index) }"
+                                         @click="toggleSongSelection(index)">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <n-checkbox 
+                                                :checked="ocrResultModal.selectedSongs.includes(index)"
+                                                @click.stop
+                                                @update:checked="() => toggleSongSelection(index)"
+                                            />
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 500;">{{ song.title }}</div>
+                                                <div v-if="song.artist" style="font-size: 14px; color: #666;">{{ song.artist }}</div>
+                                                <div v-else style="font-size: 14px; color: #999;">未识别到歌手</div>
+                                            </div>
+                                            <n-tag v-if="song.confidence" size="small" :type="song.confidence > 0.7 ? 'success' : song.confidence > 0.5 ? 'warning' : 'error'">
+                                                置信度 {{ (song.confidence * 100).toFixed(0) }}%
+                                            </n-tag>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <template #action>
+                                    <n-space justify="end">
+                                        <n-button @click="ocrResultModal.show = false">取消</n-button>
+                                        <n-button type="primary" 
+                                                 @click="confirmOcrImport" 
+                                                 :loading="ocrResultModal.loading"
+                                                 :disabled="ocrResultModal.selectedSongs.length === 0">
+                                            导入选中歌曲 ({{ ocrResultModal.selectedSongs.length }})
+                                        </n-button>
+                                    </n-space>
+                                </template>
+                            </n-card>
+                        </n-modal>
                     </div>
                 `,
                 setup() {
@@ -704,7 +804,9 @@
                     NSelect,
                     NGrid,
                     NGridItem,
-                    NModal
+                    NModal,
+                    NAlert,
+                    NCheckbox
                 },
                 
                 data() {
@@ -755,6 +857,19 @@
                         },
                         excelImporting: false,
                         imageImporting: false,
+
+                        // OCR识别结果模态框
+                        ocrResultModal: {
+                            show: false,
+                            loading: false,
+                            data: {
+                                extractedSongs: [],
+                                confidence: 0,
+                                totalTextLines: 0,
+                                songCount: 0
+                            },
+                            selectedSongs: []
+                        },
 
                         // 安全设置相关
                         securityForm: {
@@ -1275,7 +1390,23 @@
                             });
                             const data = await response.json();
                             if (data.success) {
-                                this.message.success('歌曲批量导入成功！');
+                                // 显示详细的导入结果
+                                const { imported, skipped, failed, skippedSongs, errors } = data.data;
+                                let resultMessage = data.message;
+                                
+                                // 如果有跳过的歌曲，显示详情
+                                if (skipped > 0 && skippedSongs.length > 0) {
+                                    const skippedList = skippedSongs.join('、');
+                                    resultMessage += `\n跳过的歌曲: ${skippedList}${skipped > skippedSongs.length ? '等' : ''}`;
+                                }
+                                
+                                // 如果有错误，显示部分错误信息
+                                if (failed > 0 && errors.length > 0) {
+                                    const errorList = errors.slice(0, 3).join('；');
+                                    resultMessage += `\n部分错误: ${errorList}${errors.length > 3 ? '等' : ''}`;
+                                }
+                                
+                                this.message.success(resultMessage);
                                 await this.loadSongs();
                             } else {
                                 this.message.error(data.error || '歌曲批量导入失败');
@@ -1297,23 +1428,104 @@
                         try {
                             const formData = new FormData();
                             formData.append('file', file);
+                            
                             const response = await this.apiCall('/api/songs/import/image', {
                                 method: 'POST',
                                 body: formData
                             });
                             const data = await response.json();
+                            
                             if (data.success) {
-                                this.message.success('歌曲批量导入成功！');
-                                await this.loadSongs();
+                                // 显示OCR识别结果
+                                this.ocrResultModal.data = {
+                                    extractedSongs: data.data.extractedSongs || [],
+                                    confidence: data.data.confidence || 0,
+                                    totalTextLines: data.data.totalTextLines || 0,
+                                    songCount: data.data.songCount || 0
+                                };
+                                
+                                // 默认选中所有歌曲
+                                this.ocrResultModal.selectedSongs = data.data.extractedSongs.map((_, index) => index);
+                                this.ocrResultModal.show = true;
+                                this.message.success(data.message);
                             } else {
-                                this.message.error(data.error || '歌曲批量导入失败');
+                                this.message.error(data.error || '图片识别失败');
                             }
                         } catch (error) {
                             if (error.message !== '登录已过期') {
-                                this.message.error('歌曲批量导入失败: ' + error.message);
+                                this.message.error('图片识别失败: ' + error.message);
                             }
                         } finally {
                             this.imageImporting = false;
+                            // 清除文件选择
+                            event.target.value = '';
+                        }
+                    },
+
+                    // 确认导入OCR识别的歌曲
+                    async confirmOcrImport() {
+                        if (this.ocrResultModal.selectedSongs.length === 0) {
+                            this.message.warning('请至少选择一首歌曲进行导入');
+                            return;
+                        }
+
+                        this.ocrResultModal.loading = true;
+                        try {
+                            const response = await this.apiCall('/api/songs/import/image/confirm', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    songs: this.ocrResultModal.data.extractedSongs,
+                                    selectedIndexes: this.ocrResultModal.selectedSongs
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                const { imported, skipped, failed, skippedSongs, errors } = data.data;
+                                let resultMessage = data.message;
+                                
+                                // 显示详细结果
+                                if (skipped > 0 && skippedSongs.length > 0) {
+                                    const skippedList = skippedSongs.join('、');
+                                    resultMessage += `\n跳过的歌曲: ${skippedList}${skipped > skippedSongs.length ? '等' : ''}`;
+                                }
+                                
+                                if (failed > 0 && errors.length > 0) {
+                                    const errorList = errors.slice(0, 3).join('；');
+                                    resultMessage += `\n部分错误: ${errorList}${errors.length > 3 ? '等' : ''}`;
+                                }
+                                
+                                this.message.success(resultMessage);
+                                this.ocrResultModal.show = false;
+                                await this.loadSongs();
+                            } else {
+                                this.message.error(data.error || '导入失败');
+                            }
+                        } catch (error) {
+                            if (error.message !== '登录已过期') {
+                                this.message.error('导入失败: ' + error.message);
+                            }
+                        } finally {
+                            this.ocrResultModal.loading = false;
+                        }
+                    },
+
+                    // 切换歌曲选择状态
+                    toggleSongSelection(index) {
+                        const selectedIndex = this.ocrResultModal.selectedSongs.indexOf(index);
+                        if (selectedIndex > -1) {
+                            this.ocrResultModal.selectedSongs.splice(selectedIndex, 1);
+                        } else {
+                            this.ocrResultModal.selectedSongs.push(index);
+                        }
+                    },
+
+                    // 全选/全不选
+                    toggleSelectAll() {
+                        if (this.ocrResultModal.selectedSongs.length === this.ocrResultModal.data.extractedSongs.length) {
+                            this.ocrResultModal.selectedSongs = [];
+                        } else {
+                            this.ocrResultModal.selectedSongs = this.ocrResultModal.data.extractedSongs.map((_, index) => index);
                         }
                     },
 
@@ -1357,6 +1569,29 @@
                             this.message.error('修改失败: ' + error.message);
                         } finally {
                             this.keyChanging = false;
+                        }
+                    },
+
+                    // 下载Excel模板
+                    async downloadExcelTemplate() {
+                        try {
+                            const response = await fetch('/api/songs/template');
+                            if (response.ok) {
+                                const blob = await response.blob();
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = 'songlist-template.xlsx';
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                this.message.success('Excel模板下载成功');
+                            } else {
+                                this.message.error('模板下载失败');
+                            }
+                        } catch (error) {
+                            this.message.error('模板下载失败: ' + error.message);
                         }
                     },
 
