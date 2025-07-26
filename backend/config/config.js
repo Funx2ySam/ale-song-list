@@ -26,6 +26,13 @@ module.exports = {
         }
     },
 
+    // 站点设置（环境变量默认值）
+    site: {
+        defaultTitle: process.env.SITE_TITLE || '歌单系统',
+        defaultFavicon: process.env.SITE_FAVICON || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8cGF0aCBkPSJNOCAxMGg2djJIOHYtMnptMCA0aDZ2Mkg4di0yem0wIDRoNHYySDB2LTJ6bTEwLThIMjZ2MkgxOFY2em0wIDRoOHYySDE4di0yem0wIDRoNnYySDE4di0yeiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+',
+        adminSuffix: process.env.ADMIN_TITLE_SUFFIX || ' - 管理后台'
+    },
+
     // 服务器配置
     server: {
         port: process.env.PORT || 3000,

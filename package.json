@@ -10,6 +10,7 @@
     "serve": "PORT=8080 node backend/app.js",
     "serve-windows": "set PORT=8080 && node backend/app.js",
     "init-db": "node scripts/init-db.js",
+    "verify": "node scripts/verify-fix.js",
     "seed": "node scripts/seed-data.js",
     "build": "echo 'Build completed'",
     "clean": "rm -rf backend/data/database.sqlite frontend/uploads/*",

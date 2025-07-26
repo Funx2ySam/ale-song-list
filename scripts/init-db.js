@@ -1,164 +1,132 @@
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+#!/usr/bin/env node
 
-// 确保数据目录存在
-const dataDir = path.join(__dirname, '../backend/data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-    console.log('✓ 创建数据目录');
+/**
+ * 数据库初始化脚本
+ * 用于Docker部署时确保数据库表正确创建
+ */
+
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+// 获取数据库路径
+const dbPath = process.env.DB_PATH || path.join(__dirname, '../backend/data/database.sqlite');
+
+console.log('🔧 开始数据库初始化...');
+console.log('📍 数据库路径:', dbPath);
+
+// 确保数据库目录存在
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log(`📁 创建数据库目录: ${dbDir}`);
 }
 
-// 确保上传目录存在
-const uploadDirs = [
-    path.join(__dirname, '../frontend/uploads'),
-    path.join(__dirname, '../frontend/uploads/avatars'),
-    path.join(__dirname, '../frontend/uploads/backgrounds'),
-    path.join(__dirname, '../frontend/uploads/temp')
-];
-
-uploadDirs.forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        console.log(`✓ 创建上传目录: ${path.basename(dir)}`);
-    }
-});
-
 try {
-    // 连接数据库
-    const dbPath = path.join(dataDir, 'database.sqlite');
+    // 创建数据库连接
     const db = new Database(dbPath);
     
-    console.log('✓ 连接到数据库');
-
     // 启用外键约束
-    db.exec('PRAGMA foreign_keys = ON');
-
-    // 创建用户信息表
-    const createStreamerTable = `
-        CREATE TABLE IF NOT EXISTS streamer_profile (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL DEFAULT '歌单系统',
-            description TEXT DEFAULT '专业歌手 | 各种风格都能唱 | 欢迎点歌互动~',
-            avatar_url TEXT DEFAULT '',
-            background_url TEXT DEFAULT '',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `;
+    db.pragma('foreign_keys = ON');
     
-    db.exec(createStreamerTable);
-    console.log('✓ 创建用户信息表');
-
-    // 创建标签表
-    const createTagsTable = `
+    console.log('✅ 数据库连接成功');
+    
+    // 创建表
+    console.log('🔨 创建数据库表...');
+    
+    // 主播表
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS streamers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            avatar TEXT,
+            background TEXT,
+            site_title TEXT DEFAULT '歌单系统',
+            site_favicon TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    // 标签表
+    db.exec(`
         CREATE TABLE IF NOT EXISTS tags (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-    `;
+    `);
     
-    db.exec(createTagsTable);
-    console.log('✓ 创建标签表');
-
-    // 创建歌曲表
-    const createSongsTable = `
+    // 歌曲表
+    db.exec(`
         CREATE TABLE IF NOT EXISTS songs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             artist TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(title, artist)
+            difficulty INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-    `;
+    `);
     
-    db.exec(createSongsTable);
-    console.log('✓ 创建歌曲表');
-
-    // 创建歌曲标签关联表
-    const createSongTagsTable = `
+    // 歌曲标签关联表
+    db.exec(`
         CREATE TABLE IF NOT EXISTS song_tags (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            song_id INTEGER NOT NULL,
-            tag_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE,
-            FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE,
+            song_id INTEGER,
+            tag_id INTEGER,
+            FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
+            FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
             UNIQUE(song_id, tag_id)
         )
-    `;
+    `);
     
-    db.exec(createSongTagsTable);
-    console.log('✓ 创建歌曲标签关联表');
-
-    // 检查并插入默认用户信息
-    const existingStreamer = db.prepare('SELECT COUNT(*) as count FROM streamer_profile').get();
-    if (existingStreamer.count === 0) {
-        const insertStreamer = db.prepare(`
-            INSERT INTO streamer_profile (name, description) 
-            VALUES (?, ?)
-        `);
-        insertStreamer.run('歌单系统', '专业歌手 | 各种风格都能唱 | 欢迎点歌互动~');
-        console.log('✓ 插入默认用户信息');
+    console.log('✅ 数据库表创建完成');
+    
+    // 创建索引
+    console.log('📊 创建数据库索引...');
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs(artist)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_songs_created_at ON songs(created_at)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_song_tags_song_id ON song_tags(song_id)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_song_tags_tag_id ON song_tags(tag_id)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name)`);
+    
+    console.log('✅ 数据库索引创建完成');
+    
+    // 检查并创建默认用户
+    console.log('👤 检查默认用户...');
+    const existingStreamer = db.prepare('SELECT id FROM streamers WHERE id = 1').get();
+    if (!existingStreamer) {
+        db.prepare(`
+            INSERT INTO streamers (name, description, site_title) 
+            VALUES (?, ?, ?)
+        `).run(
+            'Default Streamer',
+            '欢迎来到我的歌单系统',
+            '歌单系统'
+        );
+        console.log('✅ 创建默认用户记录');
+    } else {
+        console.log('✅ 默认用户已存在');
     }
-
-    // 检查并插入默认标签
-    const existingTags = db.prepare('SELECT COUNT(*) as count FROM tags').get();
-    if (existingTags.count === 0) {
-        const defaultTags = ['流行', '摇滚', '民谣', '古风', '英文', 'R&B', '说唱', '电子', '治愈', '励志'];
-        const insertTag = db.prepare('INSERT INTO tags (name) VALUES (?)');
-        
-        const insertTagsTransaction = db.transaction(() => {
-            defaultTags.forEach(tag => {
-                insertTag.run(tag);
-            });
-        });
-        
-        insertTagsTransaction();
-        console.log(`✓ 插入 ${defaultTags.length} 个默认标签`);
-    }
-
-    // 检查并插入示例歌曲
-    const existingSongs = db.prepare('SELECT COUNT(*) as count FROM songs').get();
-    if (existingSongs.count === 0) {
-        const sampleSongs = [
-            { title: '起风了', artist: '买辣椒也用券', tags: ['流行', '治愈'] },
-            { title: '夜曲', artist: '周杰伦', tags: ['流行', 'R&B'] },
-            { title: '告白气球', artist: '周杰伦', tags: ['流行'] },
-            { title: '夜空中最亮的星', artist: '逃跑计划', tags: ['摇滚', '励志'] },
-            { title: '消愁', artist: '毛不易', tags: ['民谣', '治愈'] }
-        ];
-
-        const insertSong = db.prepare('INSERT INTO songs (title, artist) VALUES (?, ?)');
-        const insertSongTag = db.prepare(`
-            INSERT INTO song_tags (song_id, tag_id) 
-            SELECT ?, id FROM tags WHERE name = ?
-        `);
-
-        const insertSampleData = db.transaction(() => {
-            sampleSongs.forEach(song => {
-                const result = insertSong.run(song.title, song.artist);
-                const songId = result.lastInsertRowid;
-                
-                song.tags.forEach(tagName => {
-                    try {
-                        insertSongTag.run(songId, tagName);
-                    } catch (err) {
-                        console.warn(`标签 "${tagName}" 不存在，跳过`);
-                    }
-                });
-            });
-        });
-
-        insertSampleData();
-        console.log(`✓ 插入 ${sampleSongs.length} 首示例歌曲`);
-    }
-
+    
+    // 检查表是否存在
+    const tables = db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name NOT LIKE 'sqlite_%'
+    `).all();
+    
+    console.log('📋 数据库表列表:');
+    tables.forEach(table => {
+        const count = db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get();
+        console.log(`   - ${table.name}: ${count.count} 条记录`);
+    });
+    
+    // 关闭数据库连接
     db.close();
-    console.log('✓ 数据库初始化完成');
-
+    
+    console.log('🎉 数据库初始化完成！');
+    
 } catch (error) {
     console.error('❌ 数据库初始化失败:', error);
     process.exit(1);

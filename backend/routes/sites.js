@@ -156,7 +156,7 @@ router.delete('/favicon', authenticateToken, async (req, res) => {
 
         // 更新数据库
         const settings = {
-            site_title: currentSettings.site_title || '歌单系统',
+            site_title: currentSettings.site_title,
             site_favicon: null
         };
 
@@ -171,6 +171,42 @@ router.delete('/favicon', authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             message: '删除站点图标失败'
+        });
+    }
+});
+
+// 重置站点设置为环境变量默认值
+router.post('/reset', authenticateToken, async (req, res) => {
+    try {
+        // 获取当前设置，删除自定义的favicon文件
+        const currentSettings = await SiteSettings.getSiteSettings();
+        
+        // 如果有自定义favicon且不是默认的base64图标，删除文件
+        if (currentSettings.site_favicon && 
+            currentSettings.site_favicon.startsWith('/uploads/') &&
+            !currentSettings.site_favicon.startsWith('data:')) {
+            const faviconPath = path.join(__dirname, '../../frontend', currentSettings.site_favicon);
+            if (fs.existsSync(faviconPath)) {
+                fs.unlinkSync(faviconPath);
+            }
+        }
+
+        // 重置为默认值
+        await SiteSettings.resetToDefaults();
+
+        // 获取重置后的设置
+        const resetSettings = await SiteSettings.getSiteSettings();
+
+        res.json({
+            success: true,
+            message: '站点设置已重置为默认值',
+            data: resetSettings
+        });
+    } catch (error) {
+        console.error('重置站点设置失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '重置站点设置失败'
         });
     }
 });

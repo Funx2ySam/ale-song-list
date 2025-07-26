@@ -58,6 +58,9 @@ npm install
 
 # 启动服务
 npm start
+
+# 验证数据库状态（可选）
+npm run verify
 ```
 
 ## 🔧 配置说明
@@ -69,6 +72,10 @@ npm start
 environment:
   - NODE_ENV=production
   - ADMIN_SECRET_KEY=your_custom_key  # 修改管理密钥
+  # 站点设置（可选）
+  - SITE_TITLE=我的歌单系统  # 自定义站点标题
+  - SITE_FAVICON=https://example.com/favicon.ico  # 自定义站点图标URL
+  - ADMIN_TITLE_SUFFIX= - 管理后台  # 管理后台标题后缀
   # OCR配置（可选）
   - ALIYUN_ACCESS_KEY_ID=your_access_key_id
   - ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
@@ -76,6 +83,22 @@ environment:
 ```
 
 **注意**：OCR图片识别功能为可选功能，如不需要可忽略相关配置。
+
+### 站点设置
+支持通过环境变量或管理后台配置站点信息：
+
+**环境变量配置**（推荐用于统一部署）：
+- `SITE_TITLE`: 网站标题，显示在浏览器标签页
+- `SITE_FAVICON`: 网站图标URL，支持HTTP/HTTPS链接或base64编码
+- `ADMIN_TITLE_SUFFIX`: 管理后台标题后缀
+
+**管理后台配置**：
+- 访问 `/admin` → 站点设置
+- 可上传自定义图标文件（PNG、JPG、ICO、SVG）
+- 支持重置为环境变量默认值
+- 修改会覆盖环境变量设置
+
+**优先级**：管理后台设置 > 环境变量 > 系统默认值
 
 ### 默认配置
 - **端口**：3000
@@ -100,6 +123,13 @@ environment:
 - `POST /api/streamer/avatar` - 上传头像
 - `POST /api/streamer/background` - 上传背景
 - `PUT /api/auth/change-key` - 修改管理密钥
+
+### 站点设置接口
+- `GET /api/site/settings` - 获取站点设置（公开）
+- `PUT /api/site/settings` - 更新站点设置（需验证）
+- `POST /api/site/favicon` - 上传站点图标（需验证）
+- `DELETE /api/site/favicon` - 删除站点图标（需验证）
+- `POST /api/site/reset` - 重置为默认值（需验证）
 
 ### 导入接口
 - `GET /api/songs/import/template` - 下载Excel模板
@@ -135,6 +165,16 @@ A: 运行 `docker-compose -f docker-compose.prod.yml pull && docker-compose -f d
 
 ### Q: 图片识别功能不可用怎么办？
 A: 图片识别功能为可选功能，如不需要可以正常使用系统的其他功能
+
+### Q: Docker部署后出现"no such table: streamers"错误？
+A: 这是数据库初始化问题，解决方案：
+1. 停止容器：`docker-compose down`
+2. 删除数据卷：`docker volume rm $(docker volume ls -q)`
+3. 重新启动：`docker-compose up -d`
+4. 或者运行验证脚本：`docker exec ale-song-list npm run verify`
+
+### Q: 站点标题和图标设置后刷新会恢复？
+A: 确保Docker volume映射正确，数据库文件应持久化存储
 
 ---
 
