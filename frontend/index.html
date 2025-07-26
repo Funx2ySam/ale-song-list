@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歌单系统</title>
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8cGF0aCBkPSJNOCAxMGg2djJIOHYtMnptMCA0aDZ2Mkg4di0yem0wIDRoNHYySDB2LTJ6bTEwLThIMjZ2MkgxOFY2em0wIDRoOHYySDE4di0yem0wIDRoNnYySDE4di0yeiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+">
+    <title></title>
+    <!-- favicon将通过JavaScript动态设置 -->
     <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Naive UI -->
@@ -1041,26 +1041,49 @@
 
         // 站点设置管理
         const SiteManager = {
-            async loadSiteSettings() {
+            // 缓存的设置
+            _settings: null,
+            
+            // 初始化站点设置
+            async init() {
                 try {
                     const response = await fetch('/api/site/settings');
                     const data = await response.json();
                     
                     if (data.success) {
-                        const settings = data.data;
-                        // 更新页面标题
-                        if (settings.site_title) {
-                            document.title = settings.site_title;
-                        }
-                        
-                        // 更新favicon
-                        if (settings.site_favicon) {
-                            this.updateFavicon(settings.site_favicon);
-                        }
+                        this._settings = data.data;
+                        // 立即应用设置
+                        this.applySiteSettings();
+                        console.log('站点设置初始化完成:', {
+                            title: this._settings.site_title,
+                            hasFavicon: !!this._settings.site_favicon,
+                            defaults: this._settings._defaults
+                        });
+                    } else {
+                        console.warn('站点设置API返回失败，使用系统默认设置');
+                        this.applyFallbackSettings();
                     }
                 } catch (error) {
-                    console.error('加载站点设置失败:', error);
+                    console.error('站点设置初始化失败，使用系统默认设置:', error);
+                    this.applyFallbackSettings();
                 }
+            },
+            
+            // 应用站点设置
+            applySiteSettings() {
+                if (!this._settings) return;
+                
+                // 设置页面标题
+                document.title = this._settings.site_title;
+                
+                // 设置favicon
+                this.updateFavicon(this._settings.site_favicon);
+            },
+            
+            // 应用回退设置（硬编码的默认值）
+            applyFallbackSettings() {
+                document.title = '歌单系统';
+                this.updateFavicon('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8cGF0aCBkPSJNOCAxMGg2djJIOHYtMnptMCA0aDZ2Mkg4di0yem0wIDRoNHYySDB2LTJ6bTEwLThIMjZ2MkgxOFY2em0wIDRoOHYySDE4di0yem0wIDRoNnYySDE4di0yeiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+');
             },
             
             updateFavicon(faviconUrl) {
@@ -1134,9 +1157,9 @@
                     }
                 }
             },
-            mounted() {
-                // 页面加载时获取站点设置
-                SiteManager.loadSiteSettings();
+            async mounted() {
+                // 初始化站点设置（一次性加载并应用）
+                await SiteManager.init();
             }
         }).mount('#app');
     </script>

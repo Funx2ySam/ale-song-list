@@ -14,10 +14,9 @@ RUN npm ci --only=production
 COPY . .
 
 # 创建必要的目录
-RUN mkdir -p frontend/uploads/avatars frontend/uploads/backgrounds frontend/uploads/temp backend/logs
+RUN mkdir -p frontend/uploads/avatars frontend/uploads/backgrounds frontend/uploads/temp backend/logs backend/data
 
-# 初始化数据库
-RUN node scripts/init-db.js
+# 注意：数据库初始化将在容器启动时进行，而不是构建时
 
 # 暴露端口
 EXPOSE 3000

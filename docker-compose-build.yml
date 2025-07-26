@@ -10,6 +10,10 @@ services:
     environment:
       - NODE_ENV=production
       - ADMIN_SECRET_KEY=admin123  # 请修改密钥
+      # 站点设置 (可选，自定义默认站点配置)
+      - SITE_TITLE=${SITE_TITLE:-歌单系统}
+      - SITE_FAVICON=${SITE_FAVICON:-}
+      - ADMIN_TITLE_SUFFIX=${ADMIN_TITLE_SUFFIX:- - 管理后台}
       # OCR服务配置 (可选，如需启用图片识别功能请配置)
       - ALIYUN_ACCESS_KEY_ID=${ALIYUN_ACCESS_KEY_ID:-}
       - ALIYUN_ACCESS_KEY_SECRET=${ALIYUN_ACCESS_KEY_SECRET:-}
