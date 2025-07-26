@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8cGF0aCBkPSJNOCAxMGg2djJIOHYtMnptMCA0aDZ2Mkg4di0yem0wIDRoNHYySDB2LTJ6bTEwLThIMjZ2MkgxOFY2em0wIDRoOHYySDE4di0yem0wIDRoNnYySDE4di0yeiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+">
     <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Naive UI -->
@@ -248,6 +249,76 @@
             font-size: 0.9rem;
             color: #666;
         }
+
+        /* 站点设置样式 */
+        .upload-section {
+            margin-top: 16px;
+        }
+
+        .current-favicon,
+        .upload-favicon {
+            margin-bottom: 16px;
+        }
+
+        .upload-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .favicon-preview {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .upload-tips {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .site-preview {
+            margin-top: 16px;
+        }
+
+        .preview-browser {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            padding: 8px;
+        }
+
+        .browser-tab {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 4px;
+            padding: 8px 12px;
+            border: 1px solid #d0d0d0;
+            max-width: 200px;
+        }
+
+        .tab-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+        }
+
+        .tab-icon-placeholder {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .tab-title {
+            font-size: 0.9rem;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -332,6 +403,10 @@
                         <div class="menu-item" :class="{ active: currentPage === 'songs' }" @click="navigateTo('songs')">
                             <span class="menu-icon">🎵</span>
                             <span>歌曲管理</span>
+                        </div>
+                        <div class="menu-item" :class="{ active: currentPage === 'siteSettings' }" @click="navigateTo('siteSettings')">
+                            <span class="menu-icon">🌐</span>
+                            <span>站点设置</span>
                         </div>
                                 <div class="menu-item" :class="{ active: currentPage === 'security' }" @click="navigateTo('security')">
                                     <span class="menu-icon">🔒</span>
@@ -625,6 +700,86 @@
                                 </div>
                             </div>
 
+                            <!-- 站点设置页面 -->
+                            <div v-if="currentPage === 'siteSettings'">
+                                <div class="form-section">
+                                    <div class="section-title">站点标题设置</div>
+                                    <n-form :model="siteForm" label-placement="top" @submit.prevent="updateSiteTitle">
+                                        <n-form-item label="站点标题">
+                                            <n-input 
+                                                v-model:value="siteForm.site_title" 
+                                                placeholder="请输入站点标题"
+                                                clearable
+                                            />
+                                        </n-form-item>
+                                        <n-form-item>
+                                            <n-button 
+                                                type="primary" 
+                                                @click="updateSiteTitle"
+                                                :loading="siteForm.titleLoading"
+                                            >
+                                                更新标题
+                                            </n-button>
+                                        </n-form-item>
+                                    </n-form>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <div class="section-title">站点图标设置</div>
+                                    <div class="upload-section">
+                                        <div class="current-favicon" v-if="siteForm.site_favicon">
+                                            <div class="upload-label">当前图标</div>
+                                            <div class="favicon-preview">
+                                                <img :src="siteForm.site_favicon" alt="当前图标" style="width: 32px; height: 32px;">
+                                                <n-button 
+                                                    type="error" 
+                                                    size="small" 
+                                                    @click="deleteFavicon"
+                                                    :loading="siteForm.deleteLoading"
+                                                    style="margin-left: 10px;"
+                                                >
+                                                    删除图标
+                                                </n-button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="upload-favicon">
+                                            <div class="upload-label">上传新图标</div>
+                                            <input 
+                                                ref="faviconInput" 
+                                                type="file" 
+                                                accept="image/*" 
+                                                @change="handleFaviconUpload" 
+                                                style="display: none;"
+                                            />
+                                            <n-button 
+                                                type="primary" 
+                                                @click="$refs.faviconInput.click()"
+                                                :loading="siteForm.uploadLoading"
+                                            >
+                                                选择图标文件
+                                            </n-button>
+                                            <div class="upload-tips">
+                                                支持 PNG、JPG、ICO、SVG 格式，建议尺寸 32x32px
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <div class="section-title">预览效果</div>
+                                    <div class="site-preview">
+                                        <div class="preview-browser">
+                                            <div class="browser-tab">
+                                                <img v-if="siteForm.site_favicon" :src="siteForm.site_favicon" class="tab-icon">
+                                                <span v-else class="tab-icon-placeholder">🌐</span>
+                                                <span class="tab-title">{{ siteForm.site_title || '歌单系统' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- 安全设置页面 -->
                             <div v-if="currentPage === 'security'">
                                 <div class="form-section">
@@ -871,6 +1026,15 @@
                             selectedSongs: []
                         },
 
+                        // 站点设置相关
+                        siteForm: {
+                            site_title: '歌单系统',
+                            site_favicon: null,
+                            titleLoading: false,
+                            uploadLoading: false,
+                            deleteLoading: false
+                        },
+
                         // 安全设置相关
                         securityForm: {
                             currentKey: '',
@@ -888,6 +1052,7 @@
                             profile: '用户设置',
                             tags: '标签管理',
                             songs: '歌曲管理',
+                            siteSettings: '站点设置',
                             security: '安全设置'
                         };
                         return titles[this.currentPage] || '管理后台';
@@ -899,6 +1064,7 @@
                             profile: '管理用户头像、背景和个人信息',
                             tags: '添加、编辑和删除歌曲标签',
                             songs: '添加和管理歌单中的歌曲',
+                            siteSettings: '自定义站点标题和图标',
                             security: '修改管理员登录密钥'
                         };
                         return subtitles[this.currentPage] || '';
@@ -926,6 +1092,7 @@
                 async mounted() {
                     await this.checkAuth();
                     await this.loadInitialData();
+                    await this.loadSiteSettings();
                 },
                 
                 methods: {
@@ -1046,22 +1213,39 @@
                             let page = 1;
                             let hasMore = true;
                             
+                            console.log('开始加载歌曲...');
+                            
                             while (hasMore) {
-                                const response = await fetch(`/api/songs?page=${page}&limit=100`);
+                                const response = await fetch(`/api/songs?page=${page}&limit=500`);
                                 const data = await response.json();
+                                
+                                console.log(`第${page}页:`, {
+                                    success: data.success,
+                                    songsCount: data.data?.songs?.length || 0,
+                                    pagination: data.data?.pagination
+                                });
                                 
                                 if (data.success && data.data.songs) {
                                     allSongs = allSongs.concat(data.data.songs);
                                     
                                     // 检查是否还有更多数据
                                     const { pagination } = data.data;
-                                    hasMore = page < pagination.totalPages;
+                                    hasMore = data.data.songs.length === 500; // 如果这页满了500首，可能还有下一页
+                                    
+                                    // 安全检查：避免无限循环
+                                    if (page >= 100) {
+                                        console.warn('已到达最大页数限制');
+                                        hasMore = false;
+                                    }
+                                    
                                     page++;
                                 } else {
+                                    console.log('API返回失败或无数据，停止加载');
                                     hasMore = false;
                                 }
                             }
                             
+                            console.log(`歌曲加载完成，总计: ${allSongs.length} 首`);
                             this.songs = allSongs;
                         } catch (error) {
                             console.error('加载歌曲失败:', error);
@@ -1527,6 +1711,148 @@
                         } else {
                             this.ocrResultModal.selectedSongs = this.ocrResultModal.data.extractedSongs.map((_, index) => index);
                         }
+                    },
+
+                    // 站点设置相关方法
+                async loadSiteSettings() {
+                    try {
+                        const response = await fetch('/api/site/settings');
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.siteForm.site_title = data.data.site_title || '歌单系统';
+                            this.siteForm.site_favicon = data.data.site_favicon;
+                            this.updatePageTitle();
+                            this.updateFavicon();
+                        }
+                    } catch (error) {
+                        console.error('加载站点设置失败:', error);
+                    }
+                },
+                
+                async updateSiteTitle() {
+                    if (!this.siteForm.site_title.trim()) {
+                        this.message.error('站点标题不能为空');
+                        return;
+                    }
+                    
+                    this.siteForm.titleLoading = true;
+                    
+                    try {
+                        const response = await fetch('/api/site/settings', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                            },
+                            body: JSON.stringify({
+                                site_title: this.siteForm.site_title
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.message.success('站点标题更新成功');
+                            this.updatePageTitle();
+                        } else {
+                            this.message.error(data.message || '更新失败');
+                        }
+                    } catch (error) {
+                        console.error('更新站点标题失败:', error);
+                        this.message.error('更新失败，请检查网络连接');
+                    } finally {
+                        this.siteForm.titleLoading = false;
+                    }
+                },
+                
+                async handleFaviconUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    this.siteForm.uploadLoading = true;
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('favicon', file);
+                        
+                        const response = await fetch('/api/site/favicon', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                            },
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.message.success('站点图标上传成功');
+                            this.siteForm.site_favicon = data.data.favicon_url;
+                            this.updateFavicon();
+                        } else {
+                            this.message.error(data.message || '上传失败');
+                        }
+                    } catch (error) {
+                        console.error('上传站点图标失败:', error);
+                        this.message.error('上传失败，请检查网络连接');
+                    } finally {
+                        this.siteForm.uploadLoading = false;
+                        // 清空文件选择
+                        event.target.value = '';
+                    }
+                },
+                
+                async deleteFavicon() {
+                    this.siteForm.deleteLoading = true;
+                    
+                    try {
+                        const response = await fetch('/api/site/favicon', {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${sessionStorage.getItem('admin_token')}`
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.message.success('站点图标删除成功');
+                            this.siteForm.site_favicon = null;
+                            this.updateFavicon();
+                        } else {
+                            this.message.error(data.message || '删除失败');
+                        }
+                    } catch (error) {
+                        console.error('删除站点图标失败:', error);
+                        this.message.error('删除失败，请检查网络连接');
+                    } finally {
+                        this.siteForm.deleteLoading = false;
+                    }
+                },
+                
+                updatePageTitle() {
+                    document.title = `${this.siteForm.site_title} - 管理后台`;
+                },
+                
+                updateFavicon() {
+                    const existingFavicon = document.querySelector('link[rel="icon"]');
+                    if (existingFavicon) {
+                        existingFavicon.remove();
+                    }
+                    
+                    const link = document.createElement('link');
+                    link.rel = 'icon';
+                    link.type = 'image/x-icon';
+                    
+                    if (this.siteForm.site_favicon) {
+                        link.href = this.siteForm.site_favicon;
+                    } else {
+                        // 使用默认图标
+                        link.href = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8cGF0aCBkPSJNOCAxMGg2djJIOHYtMnptMCA0aDZ2Mkg4di0yem0wIDRoNHYySDB2LTJ6bTEwLThIMjZ2MkgxOFY2em0wIDRoOHYySDE4di0yem0wIDRoNnYySDE4di0yeiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+';
+                    }
+                    
+                    document.head.appendChild(link);
                     },
 
                     // 安全设置相关方法

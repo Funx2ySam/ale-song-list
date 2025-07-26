@@ -112,3 +112,4 @@ Thumbs.db
 *.tmp
 *.temp
 ACTIONS_SETUP.md
+nginx.conf

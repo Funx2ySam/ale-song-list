@@ -19,6 +19,7 @@ router.use('/auth', require('./auth'));
 router.use('/songs', require('./songs'));
 router.use('/tags', require('./tags'));
 router.use('/streamer', require('./streamer'));
+router.use('/site', require('./sites'));
 
 // 需要身份验证的API（导入功能）
 router.use('/import', authenticateToken, requireAdmin, require('./import'));
