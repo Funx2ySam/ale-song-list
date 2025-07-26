@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 module.exports = {
     // 数据库配置
     database: {

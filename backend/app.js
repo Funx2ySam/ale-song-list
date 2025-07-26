@@ -5,11 +5,12 @@ const fs = require('fs');
 const logger = require('./utils/logger');
 require('dotenv').config();
 
+const config = require('./config/config');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.server.port;
 
 // 确保上传目录存在
-const uploadDir = process.env.UPLOAD_PATH || './frontend/uploads';
+const uploadDir = './frontend/uploads'; // 固定路径，避免配置复杂化
 const uploadSubDirs = ['avatars', 'backgrounds', 'temp'];
 
 uploadSubDirs.forEach(subDir => {
@@ -76,6 +77,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 静态文件服务
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/uploads', express.static(path.join(__dirname, '../frontend/uploads')));
+
+// 应用通用限流器到API路由
+const { apiLimiter } = require('./middleware/rateLimiter');
+app.use('/api', apiLimiter);
 
 // API路由
 app.use('/api', require('./routes/api'));

@@ -3,10 +3,20 @@ const router = express.Router();
 const db = require('../config/database');
 const { validateSong, validateId, validatePagination, validateSearch } = require('../middleware/validation');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { searchLimiter, apiLimiter } = require('../middleware/rateLimiter');
+const { invalidateSongCache } = require('../middleware/cacheInvalidation');
+const { songCache } = require('../utils/cache');
 const XLSX = require('xlsx');
 
 // 获取歌曲列表（公开接口）
-router.get('/', validatePagination, validateSearch, (req, res) => {
+router.get('/', (req, res, next) => {
+    // 如果有搜索参数，使用搜索限流器
+    if (req.query.search && req.query.search.trim()) {
+        return searchLimiter(req, res, next);
+    }
+    // 否则使用通用限流器
+    return apiLimiter(req, res, next);
+}, validatePagination, validateSearch, async (req, res) => {
     try {
         const { search = '', tag = '' } = req.query;
         const { page, limit } = req.pagination;
@@ -14,6 +24,17 @@ router.get('/', validatePagination, validateSearch, (req, res) => {
         const pageNum = page;
         const limitNum = limit;
         const offset = (pageNum - 1) * limitNum;
+        
+        // 先检查缓存
+        const cachedResult = await songCache.getSongs(pageNum, limitNum, search, tag);
+        if (cachedResult) {
+            console.log('使用后端缓存数据');
+            return res.json({
+                success: true,
+                data: cachedResult,
+                cached: true
+            });
+        }
 
         let baseQuery = `
             SELECT DISTINCT s.id, s.title, s.artist, s.created_at
@@ -78,17 +99,22 @@ router.get('/', validatePagination, validateSearch, (req, res) => {
             };
         });
 
+        const result = {
+            songs: songsWithTags,
+            pagination: {
+                total: total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum)
+            }
+        };
+        
+        // 保存到缓存
+        await songCache.setSongs(pageNum, limitNum, search, tag, result);
+        
         res.json({
             success: true,
-            data: {
-                songs: songsWithTags,
-                pagination: {
-                    total: total,
-                    page: pageNum,
-                    limit: limitNum,
-                    totalPages: Math.ceil(total / limitNum)
-                }
-            }
+            data: result
         });
 
     } catch (error) {
@@ -239,7 +265,7 @@ router.use(authenticateToken);
 router.use(requireAdmin);
 
 // 添加新歌曲
-router.post('/', validateSong, (req, res) => {
+router.post('/', invalidateSongCache, validateSong, async (req, res) => {
     try {
         const { title, artist, tags = [] } = req.body;
 
@@ -311,7 +337,7 @@ router.post('/', validateSong, (req, res) => {
 });
 
 // 更新歌曲
-router.put('/:id', validateId, validateSong, (req, res) => {
+router.put('/:id', invalidateSongCache, validateId, validateSong, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, artist, tags = [] } = req.body;
@@ -383,7 +409,7 @@ router.put('/:id', validateId, validateSong, (req, res) => {
 });
 
 // 删除歌曲
-router.delete('/:id', validateId, (req, res) => {
+router.delete('/:id', invalidateSongCache, validateId, async (req, res) => {
     try {
         const { id } = req.params;
 

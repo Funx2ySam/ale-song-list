@@ -185,10 +185,10 @@ const validatePagination = (req, res, next) => {
         });
     }
     
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
         return res.status(400).json({
             success: false,
-            error: '每页数量必须是1-100之间的整数'
+            error: '每页数量必须是1-1000之间的整数'
         });
     }
     

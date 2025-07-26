@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>歌单系统</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzY2N2VlYSIvPgo8cGF0aCBkPSJNOCAxMGg2djJIOHYtMnptMCA0aDZ2Mkg4di0yem0wIDRoNHYySDB2LTJ6bTEwLThIMjZ2MkgxOFY2em0wIDRoOHYySDE4di0yem0wIDRoNnYySDE4di0yeiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+">
     <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Naive UI -->
@@ -178,6 +179,7 @@
             NEmpty, 
             NBackTop, 
             NModal, 
+            NPagination,
             useMessage,
             darkTheme 
         } = naive;
@@ -234,11 +236,14 @@
                         
                         <n-input
                             v-model:value="searchQuery"
-                            placeholder="搜索歌曲名称或歌手..."
+                            :placeholder="isSearching ? '搜索中...' : '搜索歌曲名称或歌手...'"
                             clearable
                             round
                             size="large"
-                            @input="filterSongs"
+                            :loading="isSearching"
+                            @input="debounceSearch"
+                            @clear="clearSearch"
+                            @keydown.enter="handleSearchEnter"
                         >
                             <template #prefix>
                                 <n-icon>
@@ -274,42 +279,62 @@
                     </n-card>
 
                     <!-- 歌曲列表 -->
-                    <div v-if="filteredSongs.length > 0" class="song-list">
-                        <n-card
-                            v-for="song in filteredSongs"
-                            :key="song.id"
-                            class="song-card"
-                            :bordered="false"
-                            hoverable
-                            @click="selectSong(song)"
-                        >
-                            <n-thing>
-                                <template #header>
-                                    <n-text strong style="font-size: 1.2rem;">
-                                        {{ song.title }}
-                                    </n-text>
-                                </template>
-                                <template #description>
-                                    <n-text :depth="2">{{ song.artist }}</n-text>
-                                </template>
-                                <template #footer>
-                                    <n-space size="small">
-                                        <n-tag
-                                            v-for="tag in song.tags"
-                                            :key="tag"
-                                            size="small"
-                                            round
-                                        >
-                                            {{ tag }}
-                                        </n-tag>
-                                    </n-space>
-                                </template>
-                            </n-thing>
+                    <div v-if="paginatedSongs.length > 0">
+                        <div class="song-list">
+                            <n-card
+                                v-for="song in paginatedSongs"
+                                :key="song.id"
+                                class="song-card"
+                                :bordered="false"
+                                hoverable
+                                @click="selectSong(song)"
+                            >
+                                <n-thing>
+                                    <template #header>
+                                        <n-text strong style="font-size: 1.2rem;">
+                                            {{ song.title }}
+                                        </n-text>
+                                    </template>
+                                    <template #description>
+                                        <n-text :depth="2">{{ song.artist }}</n-text>
+                                    </template>
+                                    <template #footer>
+                                        <n-space size="small">
+                                            <n-tag
+                                                v-for="tag in song.tags"
+                                                :key="tag"
+                                                size="small"
+                                                round
+                                            >
+                                                {{ tag }}
+                                            </n-tag>
+                                        </n-space>
+                                    </template>
+                                </n-thing>
+                            </n-card>
+                        </div>
+                        
+                        <!-- 分页控件 -->
+                        <n-card v-if="totalPages > 1" style="margin-top: 20px;" :bordered="false">
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
+                                <n-text :depth="2" style="white-space: nowrap;">
+                                    共 {{ totalSongsCount }} 首歌曲，第 {{ currentPage }} / {{ totalPages }} 页
+                                </n-text>
+                                <n-pagination
+                                    v-model:page="currentPage"
+                                    :page-count="totalPages"
+                                    :page-size="pageSize"
+                                    :show-size-picker="true"
+                                    :page-sizes="[12, 24, 48, 96]"
+                                    @update:page="handlePageChange"
+                                    @update:page-size="handlePageSizeChange"
+                                />
+                            </div>
                         </n-card>
                     </div>
 
                     <!-- 无结果提示 -->
-                    <n-card v-else-if="!initialLoading && filteredSongs.length === 0" :bordered="false">
+                    <n-card v-else-if="!initialLoading && songs.length === 0" :bordered="false">
                         <n-empty
                             description="没有找到匹配的歌曲"
                             style="margin: 40px 0;"
@@ -393,7 +418,8 @@
                 NSpace,
                 NEmpty,
                 NBackTop,
-                NModal
+                NModal,
+                NPagination
             },
             data() {
                 return {
@@ -419,9 +445,30 @@
                     apiError: false,
                     
                     // 歌曲数据
-                    songs: [],
+                    songs: [], // 当前页的歌曲
                     allTags: [],
-                    filteredSongs: [],
+                    filteredSongs: [], // 保持兼容性，实际使用songs
+                    
+                    // 分页数据
+                    currentPage: 1,
+                    pageSize: 24,
+                    totalSongsCount: 0,
+                    totalPages: 0,
+                    
+                    // 搜索去抖动
+                    searchTimer: null,
+                    
+                    // 请求控制
+                    currentRequest: null,
+                    isSearching: false,
+                    
+                    // 缓存机制
+                    cache: new Map(),
+                    cacheExpiry: 5 * 60 * 1000, // 5分钟缓存
+                    
+                    // 搜索优化
+                    instantSearchMode: true, // 即时搜索模式
+                    lastSearchTime: 0,
                     
                     // 模拟数据（当API不可用时使用）
                     mockSongs: [
@@ -466,13 +513,23 @@
                 },
                 
                 totalSongs() {
-                    return this.songs.length;
+                    return this.totalSongsCount;
+                },
+                
+                // 当前页歌曲（后端分页，直接返回当前页数据）
+                paginatedSongs() {
+                    return this.songs;
                 }
             },
             
             mounted() {
                 this.applyBackground(); // 先应用默认背景
                 this.initializeData();
+                
+                // 搜索缓存预热（延迟执行）
+                setTimeout(() => {
+                    this.preloadCommonSearches();
+                }, 3000);
             },
             
             methods: {
@@ -486,9 +543,8 @@
                         const controller = new AbortController();
                         const timeoutId = setTimeout(() => controller.abort(), 3000);
                         
-                        const [streamerResponse, songsResponse, tagsResponse] = await Promise.all([
+                        const [streamerResponse, tagsResponse] = await Promise.all([
                             this.fetchWithFallback('/api/streamer/profile', { signal: controller.signal }),
-                            this.fetchWithFallback('/api/songs', { signal: controller.signal }),
                             this.fetchWithFallback('/api/tags', { signal: controller.signal })
                         ]);
 
@@ -510,32 +566,16 @@
                             }
                         }
 
-                        // 处理歌曲数据
-                        if (songsResponse && songsResponse.ok) {
-                            const songsData = await songsResponse.json();
-                            if (songsData.success && songsData.data.songs) {
-                                this.songs = songsData.data.songs;
-                            } else {
-                                throw new Error('Songs data format error');
-                            }
-                        } else {
-                            throw new Error('Songs API failed');
-                        }
-
                         // 处理标签数据
                         if (tagsResponse && tagsResponse.ok) {
                             const tagsData = await tagsResponse.json();
                             if (tagsData.success) {
                                 this.allTags = tagsData.data;
-                            } else {
-                                // 从歌曲中提取标签
-                                this.extractTagsFromSongs();
                             }
-                        } else {
-                            this.extractTagsFromSongs();
                         }
 
-                        this.filteredSongs = [...this.songs];
+                        // 加载歌曲数据（分页）
+                        await this.loadSongs();
 
                     } catch (error) {
                         console.error('API请求失败，使用模拟数据:', error);
@@ -545,6 +585,8 @@
                         this.songs = [...this.mockSongs];
                         this.allTags = [...this.mockTags];
                         this.filteredSongs = [...this.songs];
+                        this.totalSongsCount = this.songs.length;
+                        this.totalPages = Math.ceil(this.totalSongsCount / this.pageSize);
                         
                         // 应用默认背景
                         this.applyBackground();
@@ -567,16 +609,135 @@
                     }
                 },
 
-                // 从歌曲中提取标签
-                extractTagsFromSongs() {
-                    const tagSet = new Set();
-                    this.songs.forEach(song => {
-                        if (song.tags && Array.isArray(song.tags)) {
-                            song.tags.forEach(tag => tagSet.add(tag));
-                        }
-                    });
-                    this.allTags = Array.from(tagSet);
+                // 生成缓存键
+                getCacheKey() {
+                    return `songs_${this.currentPage}_${this.pageSize}_${this.searchQuery.trim()}_${this.selectedTag}`;
                 },
+                
+                // 检查缓存
+                getCachedData(key) {
+                    if (this.cache.has(key)) {
+                        const cached = this.cache.get(key);
+                        if (Date.now() - cached.timestamp < this.cacheExpiry) {
+                            return cached.data;
+                        } else {
+                            this.cache.delete(key);
+                        }
+                    }
+                    return null;
+                },
+                
+                // 设置缓存
+                setCachedData(key, data) {
+                    this.cache.set(key, {
+                        data: data,
+                        timestamp: Date.now()
+                    });
+                    
+                    // 限制缓存大小
+                    if (this.cache.size > 50) {
+                        const firstKey = this.cache.keys().next().value;
+                        this.cache.delete(firstKey);
+                    }
+                },
+
+                // 加载歌曲数据（后端分页 + 缓存 + 请求取消）
+                async loadSongs() {
+                    try {
+                        // 取消之前的请求
+                        if (this.currentRequest) {
+                            this.currentRequest.abort();
+                        }
+                        
+                        this.isSearching = true;
+                        
+                        // 生成缓存键
+                        const cacheKey = this.getCacheKey();
+                        
+                        // 检查缓存
+                        const cachedData = this.getCachedData(cacheKey);
+                        if (cachedData) {
+                            this.songs = cachedData.songs || [];
+                            this.totalSongsCount = cachedData.total || 0;
+                            this.totalPages = cachedData.totalPages || 0;
+                            this.isSearching = false;
+                            console.log('使用缓存数据');
+                            return;
+                        }
+
+                        // 构建API URL
+                        const params = new URLSearchParams({
+                            page: this.currentPage,
+                            limit: this.pageSize
+                        });
+
+                        // 添加搜索参数
+                        if (this.searchQuery.trim()) {
+                            params.append('search', this.searchQuery.trim());
+                        }
+
+                        // 添加标签筛选
+                        if (this.selectedTag) {
+                            params.append('tag', this.selectedTag);
+                        }
+
+                        // 创建新的请求控制器
+                        this.currentRequest = new AbortController();
+                        
+                        const response = await fetch(`/api/songs?${params.toString()}`, {
+                            signal: this.currentRequest.signal
+                        });
+                        
+                        if (response.status === 429) {
+                            const errorData = await response.json();
+                            this.message.warning(`请求过于频繁，请${errorData.retryAfter || 60}秒后再试`);
+                            this.isSearching = false;
+                            return;
+                        }
+                        
+                        const data = await response.json();
+
+                        if (data.success && data.data) {
+                            const resultData = {
+                                songs: data.data.songs || [],
+                                total: data.data.pagination?.total || 0,
+                                totalPages: data.data.pagination?.totalPages || 0
+                            };
+                            
+                            this.songs = resultData.songs;
+                            this.totalSongsCount = resultData.total;
+                            this.totalPages = resultData.totalPages;
+                            
+                            // 缓存结果
+                            this.setCachedData(cacheKey, resultData);
+                            
+                            console.log(`加载第${this.currentPage}页: ${this.songs.length}首歌曲，总计${this.totalSongsCount}首`);
+                        } else {
+                            console.error('歌曲数据加载失败:', data.error);
+                            this.songs = [];
+                            this.totalSongsCount = 0;
+                            this.totalPages = 0;
+                            if (data.error) {
+                                this.message.error(data.error);
+                            }
+                        }
+                    } catch (error) {
+                        if (error.name === 'AbortError') {
+                            console.log('请求被取消');
+                            return;
+                        }
+                        console.error('加载歌曲失败:', error);
+                        this.songs = [];
+                        this.totalSongsCount = 0;
+                        this.totalPages = 0;
+                        this.message.error('网络错误，请检查连接');
+                    } finally {
+                        this.isSearching = false;
+                        this.currentRequest = null;
+                    }
+                },
+
+
 
                 // 刷新数据
                 async refreshData() {
@@ -585,7 +746,9 @@
                     this.isRefreshing = true;
                     
                     try {
-                        await this.initializeData();
+                        // 重置分页
+                        this.currentPage = 1;
+                        await this.loadSongs();
                         if (!this.apiError) {
                             this.message.success('数据刷新成功！');
                         }
@@ -609,29 +772,152 @@
                     }
                 },
 
-                filterSongs() {
-                    let filtered = [...this.songs];
-                    
-                    if (this.searchQuery.trim()) {
-                        const query = this.searchQuery.toLowerCase();
-                        filtered = filtered.filter(song => 
-                            song.title.toLowerCase().includes(query) ||
-                            song.artist.toLowerCase().includes(query)
-                        );
-                    }
-                    
-                    if (this.selectedTag) {
-                        filtered = filtered.filter(song => 
-                            song.tags && song.tags.includes(this.selectedTag)
-                        );
-                    }
-                    
-                    this.filteredSongs = filtered;
+                // 搜索筛选（后端搜索）
+                async filterSongs() {
+                    // 重置到第一页
+                    this.currentPage = 1;
+                    // 重新加载数据
+                    await this.loadSongs();
                 },
                 
-                selectTag(tag) {
-                    this.selectedTag = tag;
+                // 去抖动搜索（智能优化版）
+                debounceSearch() {
+                    if (this.searchTimer) {
+                        clearTimeout(this.searchTimer);
+                    }
+                    
+                    // 如果搜索内容为空，立即执行
+                    if (!this.searchQuery.trim()) {
+                        this.filterSongs();
+                        return;
+                    }
+                    
+                    const query = this.searchQuery.trim();
+                    const now = Date.now();
+                    
+                    // 智能延迟策略
+                    let delay = this.calculateSearchDelay(query, now);
+                    
+                    // 即时搜索模式：对于缓存命中的查询，几乎即时响应
+                    if (this.instantSearchMode && this.getCachedData(this.getCacheKey())) {
+                        delay = Math.min(delay, 50); // 缓存命中时最多50ms延迟
+                    }
+                    
+                    this.searchTimer = setTimeout(() => {
+                        this.lastSearchTime = Date.now();
+                        this.filterSongs();
+                    }, delay);
+                },
+                
+                // 计算搜索延迟
+                calculateSearchDelay(query, now) {
+                    // 基础延迟策略
+                    let delay;
+                    if (query.length === 1) {
+                        delay = 400; // 单字符延迟
+                    } else if (query.length === 2) {
+                        delay = 250; // 两字符快速
+                    } else {
+                        delay = 150; // 多字符极速
+                    }
+                    
+                    // 中文字符优化：中文搜索通常更精确
+                    if (/[\u4e00-\u9fa5]/.test(query)) {
+                        delay = Math.max(100, delay - 100);
+                    }
+                    
+                    // 频繁搜索保护：如果用户输入很快，适当增加延迟
+                    const timeSinceLastSearch = now - this.lastSearchTime;
+                    if (timeSinceLastSearch < 500) {
+                        delay += 100;
+                    }
+                    
+                    return delay;
+                },
+                
+                // 清除搜索
+                async clearSearch() {
+                    this.searchQuery = '';
+                    await this.filterSongs();
+                },
+                
+                // 回车立即搜索
+                handleSearchEnter() {
+                    // 取消去抖动延迟，立即搜索
+                    if (this.searchTimer) {
+                        clearTimeout(this.searchTimer);
+                        this.searchTimer = null;
+                    }
                     this.filterSongs();
+                },
+                
+                // 预加载常见搜索（缓存预热）
+                async preloadCommonSearches() {
+                    if (this.apiError) return; // 如果API有问题就不预加载
+                    
+                    console.log('开始搜索缓存预热...');
+                    const commonSearches = ['周', '王', '李', '张', '林', '陈', '流行', '摇滚'];
+                    
+                    for (const search of commonSearches) {
+                        try {
+                            // 静默预加载，不影响用户界面
+                            const controller = new AbortController();
+                            setTimeout(() => controller.abort(), 2000); // 2秒超时
+                            
+                            const params = new URLSearchParams({
+                                page: 1,
+                                limit: 24,
+                                search: search
+                            });
+                            
+                            const response = await fetch(`/api/songs?${params.toString()}`, {
+                                signal: controller.signal
+                            });
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.success && data.data) {
+                                    // 存入缓存
+                                    const cacheKey = `songs_1_24_${search}_`;
+                                    this.setCachedData(cacheKey, {
+                                        songs: data.data.songs || [],
+                                        total: data.data.pagination?.total || 0,
+                                        totalPages: data.data.pagination?.totalPages || 0
+                                    });
+                                }
+                            }
+                            
+                            // 避免请求过于频繁
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        } catch (error) {
+                            if (error.name !== 'AbortError') {
+                                console.warn('预加载搜索失败:', search, error);
+                            }
+                        }
+                    }
+                    
+                    console.log('搜索缓存预热完成');
+                },
+                
+                async selectTag(tag) {
+                    this.selectedTag = tag;
+                    await this.filterSongs();
+                },
+                
+                // 分页处理方法
+                async handlePageChange(page) {
+                    this.currentPage = page;
+                    await this.loadSongs();
+                    // 滚动到顶部
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+                
+                async handlePageSizeChange(pageSize) {
+                    this.pageSize = pageSize;
+                    this.currentPage = 1; // 重置到第一页
+                    await this.loadSongs();
+                    // 滚动到顶部
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 },
                 
                 selectSong(song) {
@@ -753,6 +1039,46 @@
             }
         };
 
+        // 站点设置管理
+        const SiteManager = {
+            async loadSiteSettings() {
+                try {
+                    const response = await fetch('/api/site/settings');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const settings = data.data;
+                        // 更新页面标题
+                        if (settings.site_title) {
+                            document.title = settings.site_title;
+                        }
+                        
+                        // 更新favicon
+                        if (settings.site_favicon) {
+                            this.updateFavicon(settings.site_favicon);
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载站点设置失败:', error);
+                }
+            },
+            
+            updateFavicon(faviconUrl) {
+                // 移除现有的favicon
+                const existingFavicon = document.querySelector('link[rel="icon"]');
+                if (existingFavicon) {
+                    existingFavicon.remove();
+                }
+                
+                // 添加新的favicon
+                const link = document.createElement('link');
+                link.rel = 'icon';
+                link.type = 'image/x-icon';
+                link.href = faviconUrl;
+                document.head.appendChild(link);
+            }
+        };
+
         createApp({
             components: {
                 NConfigProvider,
@@ -807,6 +1133,10 @@
                         }
                     }
                 }
+            },
+            mounted() {
+                // 页面加载时获取站点设置
+                SiteManager.loadSiteSettings();
             }
         }).mount('#app');
     </script>
