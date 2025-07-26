@@ -326,7 +326,7 @@
         <n-config-provider :theme="theme" :theme-overrides="themeOverrides">
             <n-message-provider>
                 <n-dialog-provider>
-                    <admin-content />
+                <admin-content />
                 </n-dialog-provider>
             </n-message-provider>
         </n-config-provider>
@@ -1965,8 +1965,8 @@
                         this.message.error('重置失败，请检查网络连接');
                     } finally {
                         this.siteForm.resetLoading = false;
-                    }
-                },
+                        }
+                    },
 
                     // 安全设置相关方法
                     async changeAdminKey() {

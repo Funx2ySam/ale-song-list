@@ -8,9 +8,9 @@ const fs = require('fs');
 console.log('🚀 正在启动歌单系统...\n');
 
 async function checkDatabase() {
-    const dbPath = './backend/data/database.sqlite';
-    const dbExists = fs.existsSync(dbPath);
-    
+const dbPath = './backend/data/database.sqlite';
+const dbExists = fs.existsSync(dbPath);
+
     let needsInit = !dbExists;
     
     // 如果数据库文件存在，检查表是否存在
@@ -42,25 +42,25 @@ async function checkDatabase() {
     }
     
     if (needsInit) {
-        console.log('📦 初始化数据库...');
-        const initDb = spawn('node', ['scripts/init-db.js'], { 
-            stdio: 'inherit',
-            cwd: process.cwd()
-        });
-        
-        initDb.on('close', (code) => {
-            if (code === 0) {
-                console.log('✅ 数据库初始化完成\n');
-                startServer();
-            } else {
-                console.error('❌ 数据库初始化失败');
-                process.exit(1);
-            }
-        });
-    } else {
-        console.log('✅ 数据库已存在\n');
-        startServer();
-    }
+    console.log('📦 初始化数据库...');
+    const initDb = spawn('node', ['scripts/init-db.js'], { 
+        stdio: 'inherit',
+        cwd: process.cwd()
+    });
+    
+    initDb.on('close', (code) => {
+        if (code === 0) {
+            console.log('✅ 数据库初始化完成\n');
+            startServer();
+        } else {
+            console.error('❌ 数据库初始化失败');
+            process.exit(1);
+        }
+    });
+} else {
+    console.log('✅ 数据库已存在\n');
+    startServer();
+}
 }
 
 // 启动数据库检查

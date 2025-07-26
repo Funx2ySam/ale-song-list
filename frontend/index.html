@@ -281,36 +281,36 @@
                     <!-- 歌曲列表 -->
                     <div v-if="paginatedSongs.length > 0">
                         <div class="song-list">
-                            <n-card
+                        <n-card
                                 v-for="song in paginatedSongs"
-                                :key="song.id"
-                                class="song-card"
-                                :bordered="false"
-                                hoverable
-                                @click="selectSong(song)"
-                            >
-                                <n-thing>
-                                    <template #header>
-                                        <n-text strong style="font-size: 1.2rem;">
-                                            {{ song.title }}
-                                        </n-text>
-                                    </template>
-                                    <template #description>
-                                        <n-text :depth="2">{{ song.artist }}</n-text>
-                                    </template>
-                                    <template #footer>
-                                        <n-space size="small">
-                                            <n-tag
-                                                v-for="tag in song.tags"
-                                                :key="tag"
-                                                size="small"
-                                                round
-                                            >
-                                                {{ tag }}
-                                            </n-tag>
-                                        </n-space>
-                                    </template>
-                                </n-thing>
+                            :key="song.id"
+                            class="song-card"
+                            :bordered="false"
+                            hoverable
+                            @click="selectSong(song)"
+                        >
+                            <n-thing>
+                                <template #header>
+                                    <n-text strong style="font-size: 1.2rem;">
+                                        {{ song.title }}
+                                    </n-text>
+                                </template>
+                                <template #description>
+                                    <n-text :depth="2">{{ song.artist }}</n-text>
+                                </template>
+                                <template #footer>
+                                    <n-space size="small">
+                                        <n-tag
+                                            v-for="tag in song.tags"
+                                            :key="tag"
+                                            size="small"
+                                            round
+                                        >
+                                            {{ tag }}
+                                        </n-tag>
+                                    </n-space>
+                                </template>
+                            </n-thing>
                             </n-card>
                         </div>
                         
