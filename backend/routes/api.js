@@ -22,5 +22,6 @@ router.use('/streamer', require('./streamer'));
 
 // 需要身份验证的API（导入功能）
 router.use('/import', authenticateToken, requireAdmin, require('./import'));
+router.use('/songs/import', authenticateToken, requireAdmin, require('./import'));
 
 module.exports = router;

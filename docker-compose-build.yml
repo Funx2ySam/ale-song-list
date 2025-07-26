@@ -2,11 +2,11 @@ version: '3.8'
 
 services:
   app:
-    image: ghcr.io/funx2ysam/ale-song-list:latest
+    build: .
     container_name: ale-song-list
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "45100:3000"
     environment:
       - NODE_ENV=production
       - ADMIN_SECRET_KEY=admin123  # 请修改密钥
@@ -17,4 +17,4 @@ services:
     volumes:
       - ./data:/app/backend/data
       - ./uploads:/app/frontend/uploads
-      - ./logs:/app/backend/logs 
+      - ./logs:/app/backend/logs

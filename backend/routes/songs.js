@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { validateSong, validateId, validatePagination, validateSearch } = require('../middleware/validation');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const XLSX = require('xlsx');
 
 // 获取歌曲列表（公开接口）
 router.get('/', validatePagination, validateSearch, (req, res) => {
@@ -99,6 +100,98 @@ router.get('/', validatePagination, validateSearch, (req, res) => {
     }
 });
 
+// 下载Excel导入模板（公开接口）- 必须在/:id路由之前
+router.get('/template', (req, res) => {
+    try {
+        console.log('模板下载请求收到');
+        
+        // 创建模板数据
+        const templateData = [
+            {
+                '歌曲名称': '起风了',
+                '歌手': '买辣椒也用券',
+                '标签': '国语,流行,治愈'
+            },
+            {
+                '歌曲名称': '夜曲',
+                '歌手': '周杰伦',
+                '标签': '国语,R&B,经典'
+            },
+            {
+                '歌曲名称': '示例歌曲3',
+                '歌手': '示例歌手3',
+                '标签': '标签1,标签2'
+            },
+            {
+                '歌曲名称': '',
+                '歌手': '',
+                '标签': ''
+            },
+            {
+                '歌曲名称': '说明：',
+                '歌手': '',
+                '标签': ''
+            },
+            {
+                '歌曲名称': '1. 歌曲名称为必填项',
+                '歌手': '',
+                '标签': ''
+            },
+            {
+                '歌曲名称': '2. 歌手可以为空',
+                '歌手': '',
+                '标签': ''
+            },
+            {
+                '歌曲名称': '3. 标签用逗号分隔，不存在会自动创建',
+                '歌手': '',
+                '标签': ''
+            },
+            {
+                '歌曲名称': '4. 相同歌名+歌手的歌曲会自动跳过',
+                '歌手': '',
+                '标签': ''
+            }
+        ];
+
+        console.log('开始创建Excel工作簿');
+        
+        // 创建工作簿
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(templateData);
+
+        // 设置列宽
+        worksheet['!cols'] = [
+            { wch: 30 }, // 歌曲名称
+            { wch: 20 }, // 歌手
+            { wch: 25 }  // 标签
+        ];
+
+        // 添加工作表
+        XLSX.utils.book_append_sheet(workbook, worksheet, '歌曲列表');
+
+        console.log('开始生成Buffer');
+        
+        // 生成Buffer
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+        console.log('Buffer生成成功，发送文件');
+        
+        // 设置响应头
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename="songlist-template.xlsx"');
+
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('生成模板失败:', error);
+        res.status(500).json({
+            success: false,
+            error: '生成模板失败: ' + error.message
+        });
+    }
+});
+
 // 获取单首歌曲详情（公开接口）
 router.get('/:id', validateId, (req, res) => {
     try {
@@ -138,6 +231,8 @@ router.get('/:id', validateId, (req, res) => {
         });
     }
 });
+
+
 
 // 以下接口需要身份验证
 router.use(authenticateToken);
