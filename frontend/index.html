@@ -116,6 +116,30 @@
             z-index: 1000;
         }
 
+        /* 分页组件样式优化 */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-info {
+            white-space: nowrap;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* 移动端样式优化 */
         @media (max-width: 768px) {
             .main-container {
                 padding: 30px 16px 16px 16px;
@@ -150,6 +174,43 @@
                 bottom: 16px;
                 right: 16px;
             }
+
+            /* 移动端分页优化 */
+            .pagination-container {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .pagination-info {
+                font-size: 0.9rem;
+                order: 1;
+            }
+
+            .pagination-controls {
+                order: 2;
+                width: 100%;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            /* 移动端分页器简化 */
+            .mobile-pagination {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
+
+            .mobile-page-size {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .pagination-info {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -180,6 +241,7 @@
             NBackTop, 
             NModal, 
             NPagination,
+            NSelect,
             useMessage,
             darkTheme 
         } = naive;
@@ -314,21 +376,63 @@
                             </n-card>
                         </div>
                         
-                        <!-- 分页控件 -->
+                        <!-- 优化后的分页控件 -->
                         <n-card v-if="totalPages > 1" style="margin-top: 20px;" :bordered="false">
-                            <div style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
-                                <n-text :depth="2" style="white-space: nowrap;">
-                                    共 {{ totalSongsCount }} 首歌曲，第 {{ currentPage }} / {{ totalPages }} 页
-                                </n-text>
-                                <n-pagination
-                                    v-model:page="currentPage"
-                                    :page-count="totalPages"
-                                    :page-size="pageSize"
-                                    :show-size-picker="true"
-                                    :page-sizes="[12, 24, 48, 96]"
-                                    @update:page="handlePageChange"
-                                    @update:page-size="handlePageSizeChange"
-                                />
+                            <div class="pagination-container">
+                                <!-- 页面信息 -->
+                                <div class="pagination-info">
+                                    <n-text :depth="2">
+                                        共 {{ totalSongsCount }} 首歌曲
+                                    </n-text>
+                                    <br v-if="isMobile">
+                                    <n-text :depth="2" v-if="!isMobile" style="margin-left: 8px;">
+                                        第 {{ currentPage }} / {{ totalPages }} 页
+                                    </n-text>
+                                    <n-text :depth="2" v-else style="font-size: 0.85rem; margin-top: 2px;">
+                                        第 {{ currentPage }} / {{ totalPages }} 页
+                                    </n-text>
+                                </div>
+                                
+                                <!-- 分页控件 -->
+                                <div class="pagination-controls">
+                                    <!-- 移动端简化分页器 -->
+                                    <div v-if="isMobile" class="mobile-pagination">
+                                        <n-pagination
+                                            v-model:page="currentPage"
+                                            :page-count="totalPages"
+                                            :page-slot="3"
+                                            :show-size-picker="false"
+                                            simple
+                                            @update:page="handlePageChange"
+                                        />
+                                    </div>
+                                    
+                                    <!-- 桌面端完整分页器 -->
+                                    <n-pagination
+                                        v-else
+                                        v-model:page="currentPage"
+                                        :page-count="totalPages"
+                                        :page-size="pageSize"
+                                        :show-size-picker="true"
+                                        :page-sizes="[12, 24, 48, 96]"
+                                        @update:page="handlePageChange"
+                                        @update:page-size="handlePageSizeChange"
+                                    />
+                                    
+                                    <!-- 移动端页面大小选择器 -->
+                                    <div v-if="isMobile" class="mobile-page-size">
+                                        <n-select
+                                            v-model:value="pageSize"
+                                            :options="pageSizeOptions"
+                                            size="small"
+                                            @update:value="handlePageSizeChange"
+                                        >
+                                            <template #header>
+                                                <n-text depth="3" style="font-size: 0.8rem;">每页显示</n-text>
+                                            </template>
+                                        </n-select>
+                                    </div>
+                                </div>
                             </div>
                         </n-card>
                     </div>
@@ -419,7 +523,8 @@
                 NEmpty,
                 NBackTop,
                 NModal,
-                NPagination
+                NPagination,
+                NSelect
             },
             data() {
                 return {
@@ -470,6 +575,9 @@
                     instantSearchMode: true, // 即时搜索模式
                     lastSearchTime: 0,
                     
+                    // 响应式检测
+                    isMobile: false,
+                    
                     // 模拟数据（当API不可用时使用）
                     mockSongs: [
                         {
@@ -519,12 +627,26 @@
                 // 当前页歌曲（后端分页，直接返回当前页数据）
                 paginatedSongs() {
                     return this.songs;
+                },
+                
+                // 页面大小选项
+                pageSizeOptions() {
+                    return [
+                        { label: '12条/页', value: 12 },
+                        { label: '24条/页', value: 24 },
+                        { label: '48条/页', value: 48 },
+                        { label: '96条/页', value: 96 }
+                    ];
                 }
             },
             
             mounted() {
                 this.applyBackground(); // 先应用默认背景
+                this.checkMobile(); // 检测移动端
                 this.initializeData();
+                
+                // 监听窗口大小变化
+                window.addEventListener('resize', this.checkMobile);
                 
                 // 搜索缓存预热（延迟执行）
                 setTimeout(() => {
@@ -532,7 +654,17 @@
                 }, 3000);
             },
             
+            beforeUnmount() {
+                // 清理事件监听器
+                window.removeEventListener('resize', this.checkMobile);
+            },
+            
             methods: {
+                // 检测是否为移动端
+                checkMobile() {
+                    this.isMobile = window.innerWidth <= 768;
+                },
+                
                 // 初始化数据
                 async initializeData() {
                     this.initialLoading = true;
@@ -736,8 +868,6 @@
                         this.currentRequest = null;
                     }
                 },
-
-
 
                 // 刷新数据
                 async refreshData() {
