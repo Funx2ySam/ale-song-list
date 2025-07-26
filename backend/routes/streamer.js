@@ -52,7 +52,7 @@ const upload = multer({
 // 获取用户信息（公开接口）
 router.get('/profile', (req, res) => {
     try {
-        const profile = db.prepare('SELECT * FROM streamer_profile WHERE id = 1').get();
+        const profile = db.prepare('SELECT * FROM streamers WHERE id = 1').get();
         
         if (!profile) {
             return res.status(404).json({
@@ -66,8 +66,8 @@ router.get('/profile', (req, res) => {
             data: {
                 name: profile.name,
                 description: profile.description,
-                avatar: profile.avatar_url,
-                background: profile.background_url,
+                avatar: profile.avatar,
+                background: profile.background,
                 created_at: profile.created_at
             }
         });
@@ -91,7 +91,7 @@ router.put('/profile', validateStreamerProfile, (req, res) => {
         const { name, description } = req.body;
 
         const updateProfile = db.prepare(`
-            UPDATE streamer_profile 
+            UPDATE streamers 
             SET name = ?, description = ? 
             WHERE id = 1
         `);
@@ -127,8 +127,8 @@ router.post('/avatar', upload.single('avatar'), validateFileUpload('avatar'), (r
 
         // 更新数据库
         const updateAvatar = db.prepare(`
-            UPDATE streamer_profile 
-            SET avatar_url = ? 
+            UPDATE streamers 
+            SET avatar = ? 
             WHERE id = 1
         `);
 
@@ -137,7 +137,7 @@ router.post('/avatar', upload.single('avatar'), validateFileUpload('avatar'), (r
         res.json({
             success: true,
             message: '头像上传成功',
-            avatar_url: avatarUrl
+            avatar: avatarUrl
         });
 
     } catch (error) {
@@ -157,8 +157,8 @@ router.post('/background', upload.single('background'), validateFileUpload('back
 
         // 更新数据库
         const updateBackground = db.prepare(`
-            UPDATE streamer_profile 
-            SET background_url = ? 
+            UPDATE streamers 
+            SET background = ? 
             WHERE id = 1
         `);
 

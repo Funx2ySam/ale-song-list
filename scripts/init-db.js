@@ -20,12 +20,12 @@ const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
     console.log(`📁 创建数据库目录: ${dbDir}`);
-}
+    }
 
 try {
     // 创建数据库连接
     const db = new Database(dbPath);
-    
+
     // 启用外键约束
     db.pragma('foreign_keys = ON');
     
@@ -47,7 +47,7 @@ try {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
-    
+
     // 标签表
     db.exec(`
         CREATE TABLE IF NOT EXISTS tags (
@@ -67,7 +67,7 @@ try {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
-    
+
     // 歌曲标签关联表
     db.exec(`
         CREATE TABLE IF NOT EXISTS song_tags (
@@ -81,7 +81,7 @@ try {
     `);
     
     console.log('✅ 数据库表创建完成');
-    
+
     // 创建索引
     console.log('📊 创建数据库索引...');
     db.exec(`CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title)`);
@@ -126,7 +126,7 @@ try {
     db.close();
     
     console.log('🎉 数据库初始化完成！');
-    
+
 } catch (error) {
     console.error('❌ 数据库初始化失败:', error);
     process.exit(1);

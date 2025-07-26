@@ -100,13 +100,13 @@ router.get('/', (req, res, next) => {
         });
 
         const result = {
-            songs: songsWithTags,
-            pagination: {
-                total: total,
-                page: pageNum,
-                limit: limitNum,
-                totalPages: Math.ceil(total / limitNum)
-            }
+                songs: songsWithTags,
+                pagination: {
+                    total: total,
+                    page: pageNum,
+                    limit: limitNum,
+                    totalPages: Math.ceil(total / limitNum)
+                }
         };
         
         // 保存到缓存
