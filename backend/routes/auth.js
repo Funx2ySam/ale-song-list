@@ -1,7 +1,10 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const config = require('../config/config');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
+
+let runtimeAdminKey = config.admin.secretKey;
 
 // 管理员登录
 router.post('/login', (req, res) => {
@@ -15,8 +18,13 @@ router.post('/login', (req, res) => {
             });
         }
 
-        // 验证管理密钥
-        const adminKey = process.env.ADMIN_SECRET_KEY || 'admin123';
+        const adminKey = runtimeAdminKey || config.admin.secretKey;
+        if (!adminKey) {
+            return res.status(500).json({
+                success: false,
+                error: '管理密钥未配置，请设置环境变量 ADMIN_SECRET_KEY'
+            });
+        }
         if (key !== adminKey) {
             return res.status(401).json({
                 success: false,
@@ -24,14 +32,13 @@ router.post('/login', (req, res) => {
             });
         }
 
-        // 生成JWT Token
         const token = jwt.sign(
             { 
                 admin: true, 
                 loginTime: new Date().toISOString() 
             },
-            process.env.JWT_SECRET || 'default-secret',
-            { expiresIn: '24h' }
+            config.jwt.secret,
+            { expiresIn: config.jwt.expiresIn }
         );
 
         res.json({
@@ -62,8 +69,7 @@ router.get('/verify', (req, res) => {
             });
         }
 
-        // 验证JWT Token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
+        const decoded = jwt.verify(token, config.jwt.secret);
         
         res.json({
             success: true,
@@ -122,18 +128,15 @@ router.put('/change-key', (req, res) => {
             });
         }
 
-        // 验证当前密钥
-        const adminKey = process.env.ADMIN_SECRET_KEY || 'admin123';
-        if (currentKey !== adminKey) {
+        const adminKey = runtimeAdminKey || config.admin.secretKey;
+        if (!adminKey || currentKey !== adminKey) {
             return res.status(400).json({
                 success: false,
                 error: '当前密钥不正确'
             });
         }
 
-        // 注意：在生产环境中，应该将新密钥写入配置文件或环境变量
-        // 这里只是演示，实际使用时需要持久化存储
-        process.env.ADMIN_SECRET_KEY = newKey;
+        runtimeAdminKey = newKey;
 
         res.json({
             success: true,

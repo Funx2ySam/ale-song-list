@@ -6,8 +6,13 @@ module.exports = {
 
     // JWT配置
     jwt: {
-        secret: process.env.JWT_SECRET || 'your-secret-key',
+        secret: process.env.JWT_SECRET || require('crypto').randomBytes(32).toString('hex'),
         expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    },
+
+    // 管理密钥（运行时可通过 API 修改，但重启后回退到此值）
+    admin: {
+        secretKey: process.env.ADMIN_SECRET_KEY || null
     },
 
     // 文件上传配置
