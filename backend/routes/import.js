@@ -23,42 +23,38 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({
+const excelUpload = multer({
     storage: storage,
-    limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB
-    },
+    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
     fileFilter: function (req, file, cb) {
-        // 根据路径判断文件类型
-        const isExcelRoute = req.route.path === '/excel';
-        const isImageRoute = req.route.path === '/image';
-        
-        if (isExcelRoute) {
-            // Excel文件
-            const allowedTypes = [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-                'application/vnd.ms-excel' // .xls
-            ];
-            if (allowedTypes.includes(file.mimetype)) {
-                cb(null, true);
-            } else {
-                cb(new Error('只允许上传Excel文件(.xlsx, .xls)'));
-            }
-        } else if (isImageRoute) {
-            // 图片文件
-            if (file.mimetype.startsWith('image/')) {
-                cb(null, true);
-            } else {
-                cb(new Error('只允许上传图片文件'));
-            }
+        const allowedTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel'
+        ];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
         } else {
-            cb(new Error('不支持的文件类型'));
+            cb(new Error('只允许上传Excel文件(.xlsx, .xls)'));
+        }
+    }
+});
+
+const imageUpload = multer({
+    storage: storage,
+    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') },
+    fileFilter: function (req, file, cb) {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        const allowedExts = /\.(jpg|jpeg|png|gif|webp)$/i;
+        if (allowedMimeTypes.includes(file.mimetype) && allowedExts.test(file.originalname)) {
+            cb(null, true);
+        } else {
+            cb(new Error('只允许上传 JPG/PNG/GIF/WEBP 图片文件'));
         }
     }
 });
 
 // Excel导入
-router.post('/excel', upload.single('file'), (req, res) => {
+router.post('/excel', excelUpload.single('file'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({
@@ -67,12 +63,18 @@ router.post('/excel', upload.single('file'), (req, res) => {
             });
         }
 
-        // 读取Excel文件
-        const workbook = XLSX.readFile(req.file.path);
+        let workbook;
+        try {
+            workbook = XLSX.readFile(req.file.path);
+        } catch (readError) {
+            fs.unlinkSync(req.file.path);
+            return res.status(400).json({
+                success: false,
+                error: 'Excel文件损坏或格式不正确: ' + readError.message
+            });
+        }
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
-        // 转换为JSON数组
         const data = XLSX.utils.sheet_to_json(worksheet);
 
         if (data.length === 0) {
@@ -200,7 +202,7 @@ router.post('/excel', upload.single('file'), (req, res) => {
 });
 
 // 图片识别导入（OCR功能）
-router.post('/image', upload.single('file'), async (req, res) => {
+router.post('/image', imageUpload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({

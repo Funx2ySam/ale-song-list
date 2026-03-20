@@ -16,7 +16,7 @@ router.get('/', (req, res, next) => {
     }
     // 否则使用通用限流器
     return apiLimiter(req, res, next);
-}, validatePagination, validateSearch, async (req, res) => {
+}, validatePagination, validateSearch, (req, res) => {
     try {
         const { search = '', tag = '' } = req.query;
         const { page, limit } = req.pagination;
@@ -25,8 +25,7 @@ router.get('/', (req, res, next) => {
         const limitNum = limit;
         const offset = (pageNum - 1) * limitNum;
         
-        // 先检查缓存
-        const cachedResult = await songCache.getSongs(pageNum, limitNum, search, tag);
+        const cachedResult = songCache.getSongs(pageNum, limitNum, search, tag);
         if (cachedResult) {
             console.log('使用后端缓存数据');
             return res.json({
@@ -83,21 +82,30 @@ router.get('/', (req, res, next) => {
         // 获取歌曲列表
         const songs = db.prepare(baseQuery).all(...queryParams, limitNum, offset);
 
-        // 为每首歌曲获取标签
-        const songsWithTags = songs.map(song => {
-            const tags = db.prepare(`
-                SELECT t.name 
+        // 批量获取所有歌曲的标签（避免 N+1 查询）
+        let songsWithTags = songs.map(song => ({ ...song, tags: [] }));
+        if (songs.length > 0) {
+            const songIds = songs.map(s => s.id);
+            const placeholders = songIds.map(() => '?').join(',');
+            const allTags = db.prepare(`
+                SELECT st.song_id, t.name 
                 FROM tags t 
                 JOIN song_tags st ON t.id = st.tag_id 
-                WHERE st.song_id = ?
+                WHERE st.song_id IN (${placeholders})
                 ORDER BY t.name
-            `).all(song.id);
+            `).all(...songIds);
 
-            return {
+            const tagMap = new Map();
+            allTags.forEach(row => {
+                if (!tagMap.has(row.song_id)) tagMap.set(row.song_id, []);
+                tagMap.get(row.song_id).push(row.name);
+            });
+
+            songsWithTags = songs.map(song => ({
                 ...song,
-                tags: tags.map(tag => tag.name)
-            };
-        });
+                tags: tagMap.get(song.id) || []
+            }));
+        }
 
         const result = {
                 songs: songsWithTags,
@@ -109,8 +117,7 @@ router.get('/', (req, res, next) => {
                 }
         };
         
-        // 保存到缓存
-        await songCache.setSongs(pageNum, limitNum, search, tag, result);
+        songCache.setSongs(pageNum, limitNum, search, tag, result);
         
         res.json({
             success: true,
@@ -265,7 +272,7 @@ router.use(authenticateToken);
 router.use(requireAdmin);
 
 // 添加新歌曲
-router.post('/', invalidateSongCache, validateSong, async (req, res) => {
+router.post('/', invalidateSongCache, validateSong, (req, res) => {
     try {
         const { title, artist, tags = [] } = req.body;
 
@@ -337,7 +344,7 @@ router.post('/', invalidateSongCache, validateSong, async (req, res) => {
 });
 
 // 更新歌曲
-router.put('/:id', invalidateSongCache, validateId, validateSong, async (req, res) => {
+router.put('/:id', invalidateSongCache, validateId, validateSong, (req, res) => {
     try {
         const { id } = req.params;
         const { title, artist, tags = [] } = req.body;
@@ -409,7 +416,7 @@ router.put('/:id', invalidateSongCache, validateId, validateSong, async (req, re
 });
 
 // 删除歌曲
-router.delete('/:id', invalidateSongCache, validateId, async (req, res) => {
+router.delete('/:id', invalidateSongCache, validateId, (req, res) => {
     try {
         const { id } = req.params;
 

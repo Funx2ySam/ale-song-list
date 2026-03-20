@@ -40,11 +40,12 @@ const upload = multer({
         fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') // 10MB
     },
     fileFilter: function (req, file, cb) {
-        // 只允许图片文件
-        if (file.mimetype.startsWith('image/')) {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        const allowedExts = /\.(jpg|jpeg|png|gif|webp)$/i;
+        if (allowedMimeTypes.includes(file.mimetype) && allowedExts.test(file.originalname)) {
             cb(null, true);
         } else {
-            cb(new Error('只允许上传图片文件'));
+            cb(new Error('只允许上传 JPG/PNG/GIF/WEBP 图片文件'));
         }
     }
 });
@@ -122,17 +123,22 @@ router.put('/profile', validateStreamerProfile, (req, res) => {
 // 上传头像
 router.post('/avatar', upload.single('avatar'), validateFileUpload('avatar'), (req, res) => {
     try {
-        // 构建文件URL
         const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
-        // 更新数据库
         const updateAvatar = db.prepare(`
             UPDATE streamers 
             SET avatar = ? 
             WHERE id = 1
         `);
 
-        updateAvatar.run(avatarUrl);
+        const result = updateAvatar.run(avatarUrl);
+
+        if (result.changes === 0) {
+            return res.status(500).json({
+                success: false,
+                error: '头像更新失败，用户记录不存在'
+            });
+        }
 
         res.json({
             success: true,
@@ -152,17 +158,22 @@ router.post('/avatar', upload.single('avatar'), validateFileUpload('avatar'), (r
 // 上传背景图
 router.post('/background', upload.single('background'), validateFileUpload('background'), (req, res) => {
     try {
-        // 构建文件URL
         const backgroundUrl = `/uploads/backgrounds/${req.file.filename}`;
 
-        // 更新数据库
         const updateBackground = db.prepare(`
             UPDATE streamers 
             SET background = ? 
             WHERE id = 1
         `);
 
-        updateBackground.run(backgroundUrl);
+        const result = updateBackground.run(backgroundUrl);
+
+        if (result.changes === 0) {
+            return res.status(500).json({
+                success: false,
+                error: '背景图更新失败，用户记录不存在'
+            });
+        }
 
         res.json({
             success: true,

@@ -48,7 +48,9 @@ app.use((req, res, next) => {
 
 // 中间件配置
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? false : true,
+    origin: process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+        : (process.env.NODE_ENV === 'production' ? false : true),
     credentials: true
 }));
 
@@ -75,8 +77,8 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 静态文件服务
-app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/uploads', express.static(path.join(__dirname, '../frontend/uploads')));
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // 应用通用限流器到API路由
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -85,56 +87,39 @@ app.use('/api', apiLimiter);
 // API路由
 app.use('/api', require('./routes/api'));
 
-// 前端路由
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/admin.html'));
-});
-
-// 404处理
-app.use('*', (req, res) => {
-    logger.warn('404 Not Found', { 
-        url: req.originalUrl,
-        method: req.method,
-        ip: req.ip
-    });
-    
+// SPA fallback: 非 API、非 uploads 的请求都返回 index.html
+app.get('*', (req, res) => {
     if (req.originalUrl.startsWith('/api')) {
-        res.status(404).json({ 
-            success: false,
-            error: 'API endpoint not found' 
-        });
-    } else {
-        res.redirect('/');
+        logger.warn('404 API Not Found', { url: req.originalUrl, method: req.method, ip: req.ip });
+        return res.status(404).json({ success: false, error: 'API endpoint not found' });
     }
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
-    const errorData = {
+    const safeBody = req.body ? { ...req.body } : {};
+    delete safeBody.key;
+    delete safeBody.currentKey;
+    delete safeBody.newKey;
+    delete safeBody.password;
+
+    logger.error('服务器错误', {
         message: err.message,
         stack: err.stack,
         url: req.originalUrl,
         method: req.method,
-        body: req.body,
+        body: safeBody,
         query: req.query,
         params: req.params
-    };
-    
-    logger.error('服务器错误', errorData);
+    });
     
     const status = err.status || 500;
-    const message = status === 500 && process.env.NODE_ENV === 'production' 
-        ? '服务器内部错误' 
-        : err.message;
+    const message = status === 500 ? '服务器内部错误' : err.message;
     
     res.status(status).json({ 
         success: false,
-        error: message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        error: message
     });
 });
 

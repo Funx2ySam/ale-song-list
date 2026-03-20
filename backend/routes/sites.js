@@ -41,9 +41,9 @@ const uploadFavicon = multer({
 });
 
 // 获取站点设置
-router.get('/settings', async (req, res) => {
+router.get('/settings', (req, res) => {
     try {
-        const settings = await SiteSettings.getSiteSettings();
+        const settings = SiteSettings.getSiteSettings();
         res.json({
             success: true,
             data: settings
@@ -58,7 +58,7 @@ router.get('/settings', async (req, res) => {
 });
 
 // 更新站点设置
-router.put('/settings', authenticateToken, async (req, res) => {
+router.put('/settings', authenticateToken, (req, res) => {
     try {
         const { site_title } = req.body;
         
@@ -69,15 +69,14 @@ router.put('/settings', authenticateToken, async (req, res) => {
             });
         }
 
-        // 获取当前设置
-        const currentSettings = await SiteSettings.getSiteSettings();
+        const currentSettings = SiteSettings.getSiteSettings();
         
         const settings = {
             site_title: site_title.trim(),
-            site_favicon: currentSettings.site_favicon // 保持当前图标
+            site_favicon: currentSettings.site_favicon
         };
 
-        await SiteSettings.updateSiteSettings(settings);
+        SiteSettings.updateSiteSettings(settings);
 
         res.json({
             success: true,
@@ -94,7 +93,7 @@ router.put('/settings', authenticateToken, async (req, res) => {
 });
 
 // 上传站点图标
-router.post('/favicon', authenticateToken, uploadFavicon.single('favicon'), async (req, res) => {
+router.post('/favicon', authenticateToken, uploadFavicon.single('favicon'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({
@@ -105,14 +104,14 @@ router.post('/favicon', authenticateToken, uploadFavicon.single('favicon'), asyn
 
         const faviconPath = `/uploads/favicon/${req.file.filename}`;
         
-        // 获取当前设置
-        const currentSettings = await SiteSettings.getSiteSettings();
+        const currentSettings = SiteSettings.getSiteSettings();
         
-        // 删除旧的图标文件
-        if (currentSettings.site_favicon) {
-            const oldPath = path.join(__dirname, '../../frontend', currentSettings.site_favicon);
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
+        // 删除旧的图标文件（防止路径遍历）
+        if (currentSettings.site_favicon && currentSettings.site_favicon.startsWith('/uploads/')) {
+            const uploadsRoot = path.resolve(__dirname, '../../frontend/uploads');
+            const oldPath = path.resolve(__dirname, '../../frontend', currentSettings.site_favicon);
+            if (oldPath.startsWith(uploadsRoot) && fs.existsSync(oldPath)) {
+                try { fs.unlinkSync(oldPath); } catch (e) { console.warn('删除旧图标失败:', e.message); }
             }
         }
 
@@ -122,7 +121,7 @@ router.post('/favicon', authenticateToken, uploadFavicon.single('favicon'), asyn
             site_favicon: faviconPath
         };
 
-        await SiteSettings.updateSiteSettings(settings);
+        SiteSettings.updateSiteSettings(settings);
 
         res.json({
             success: true,
@@ -141,26 +140,24 @@ router.post('/favicon', authenticateToken, uploadFavicon.single('favicon'), asyn
 });
 
 // 删除站点图标
-router.delete('/favicon', authenticateToken, async (req, res) => {
+router.delete('/favicon', authenticateToken, (req, res) => {
     try {
-        // 获取当前设置
-        const currentSettings = await SiteSettings.getSiteSettings();
+        const currentSettings = SiteSettings.getSiteSettings();
         
-        // 删除图标文件
-        if (currentSettings.site_favicon) {
-            const faviconPath = path.join(__dirname, '../../frontend', currentSettings.site_favicon);
-            if (fs.existsSync(faviconPath)) {
-                fs.unlinkSync(faviconPath);
+        if (currentSettings.site_favicon && currentSettings.site_favicon.startsWith('/uploads/')) {
+            const uploadsRoot = path.resolve(__dirname, '../../frontend/uploads');
+            const faviconPath = path.resolve(__dirname, '../../frontend', currentSettings.site_favicon);
+            if (faviconPath.startsWith(uploadsRoot) && fs.existsSync(faviconPath)) {
+                try { fs.unlinkSync(faviconPath); } catch (e) { console.warn('删除图标失败:', e.message); }
             }
         }
 
-        // 更新数据库
         const settings = {
             site_title: currentSettings.site_title,
             site_favicon: null
         };
 
-        await SiteSettings.updateSiteSettings(settings);
+        SiteSettings.updateSiteSettings(settings);
 
         res.json({
             success: true,
@@ -176,26 +173,21 @@ router.delete('/favicon', authenticateToken, async (req, res) => {
 });
 
 // 重置站点设置为环境变量默认值
-router.post('/reset', authenticateToken, async (req, res) => {
+router.post('/reset', authenticateToken, (req, res) => {
     try {
-        // 获取当前设置，删除自定义的favicon文件
-        const currentSettings = await SiteSettings.getSiteSettings();
+        const currentSettings = SiteSettings.getSiteSettings();
         
-        // 如果有自定义favicon且不是默认的base64图标，删除文件
-        if (currentSettings.site_favicon && 
-            currentSettings.site_favicon.startsWith('/uploads/') &&
-            !currentSettings.site_favicon.startsWith('data:')) {
-            const faviconPath = path.join(__dirname, '../../frontend', currentSettings.site_favicon);
-            if (fs.existsSync(faviconPath)) {
-                fs.unlinkSync(faviconPath);
+        if (currentSettings.site_favicon && currentSettings.site_favicon.startsWith('/uploads/')) {
+            const uploadsRoot = path.resolve(__dirname, '../../frontend/uploads');
+            const faviconPath = path.resolve(__dirname, '../../frontend', currentSettings.site_favicon);
+            if (faviconPath.startsWith(uploadsRoot) && fs.existsSync(faviconPath)) {
+                try { fs.unlinkSync(faviconPath); } catch (e) { console.warn('删除旧图标失败:', e.message); }
             }
         }
 
-        // 重置为默认值
-        await SiteSettings.resetToDefaults();
+        SiteSettings.resetToDefaults();
 
-        // 获取重置后的设置
-        const resetSettings = await SiteSettings.getSiteSettings();
+        const resetSettings = SiteSettings.getSiteSettings();
 
         res.json({
             success: true,

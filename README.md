@@ -1,181 +1,166 @@
 # 歌单管理系统
 
-一个现代化的歌单管理系统，支持歌曲管理、标签分类、Excel导入、图片OCR识别等功能。
+一个现代化的主播歌单管理系统，深色简约卡片风设计，支持亮/暗主题自适应切换，歌曲管理、标签分类、Excel 导入、图片 OCR 识别等功能。
 
-## ✨ 功能特色
+## 功能特色
 
-### 🎵 歌单展示（前台）
-- **精美界面**：使用 Naive UI 组件库，界面现代化
-- **歌曲搜索**：支持按歌曲名称、歌手搜索
-- **标签筛选**：快速按标签过滤歌曲
-- **一键复制**：点击歌曲即可复制到剪贴板
-- **响应式设计**：完美适配移动端和桌面端
+### 歌单展示（前台）
+- 深色简约卡片风界面，悬停动效
+- 亮色/暗色/跟随系统三种主题模式，实时切换
+- 歌曲搜索（防抖 + 缓存加速）、标签筛选、分页浏览
+- 点击歌曲一键复制到剪贴板
+- 自定义头像和背景图
+- 响应式布局，适配移动端
 
-### 🎛️ 后台管理
-- **身份验证**：密钥登录，24小时有效期
-- **歌曲管理**：增删改查歌曲，批量操作
-- **标签管理**：创建、编辑、删除标签
-- **用户设置**：头像、背景图片、个人信息管理
-- **安全设置**：修改管理员登录密钥
-- **数据统计**：歌曲数量、标签统计等
-- **Excel导入**：批量导入歌曲数据
-- **图片OCR**：支持歌单截图的智能识别和导入
+### 后台管理
+- 密钥登录，JWT 认证，24 小时有效期
+- 歌曲 CRUD、批量 Excel 导入、图片 OCR 识别导入
+- 标签管理（增删改 + 使用统计）
+- 用户设置（头像/背景图上传）
+- 站点设置（标题/图标自定义、预览效果）
+- 安全设置（修改管理密钥）
 
-## 🚀 快速部署
+## 技术栈
 
-### Docker Compose部署（推荐）
+### 前端
+- **Vue 3** + **Vite** — SFC 组件化、路由懒加载、HMR 开发体验
+- **vue-router 4** — SPA 路由（歌单页 + 管理后台子路由）
+- **Naive UI** — 组件库，npm 安装按需打包
+- 主题系统：深色/浅色/自动，CSS 变量 + `html.dark` 切换
 
-1. **下载配置文件**
-```bash
-curl -O https://raw.githubusercontent.com/Funx2ySam/ale-song-list/main/docker-compose.prod.yml
-```
+### 后端
+- **Node.js + Express**
+- **Better-SQLite3** — 轻量嵌入式数据库
+- **JWT** — 身份认证
+- **阿里云 OCR SDK** — 图片文字识别（可选）
 
-2. **启动服务**
-```bash
-# 创建数据目录
-mkdir -p data uploads logs
-
-# 启动服务
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-4. **访问系统**
-- 歌单页面：http://localhost:3000
-- 管理后台：http://localhost:3000/admin
-- 默认密钥：admin123
+## 快速开始
 
 ### 本地开发
 
 ```bash
 git clone https://github.com/Funx2ySam/ale-song-list.git
 cd ale-song-list
-
-# 安装依赖（包含阿里云OCR SDK）
 npm install
 
-# 配置环境变量（可选，配置后可使用OCR功能）
-# cp .env.example .env && 编辑 .env 文件
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env，至少设置 ADMIN_SECRET_KEY 和 JWT_SECRET
+
+# 构建前端
+npm run build:frontend
 
 # 启动服务
 npm start
-
-# 验证数据库状态（可选）
-npm run verify
 ```
 
-## 🔧 配置说明
+访问 http://localhost:3000，管理后台 http://localhost:3000/admin
 
-### 环境变量
-可以在 `docker-compose.prod.yml` 中修改，或创建 `.env` 文件：
+### 前端开发模式（HMR 热更新）
 
-```yaml
-environment:
-  - NODE_ENV=production
-  - ADMIN_SECRET_KEY=your_custom_key  # 修改管理密钥
-  # 站点设置（可选）
-  - SITE_TITLE=我的歌单系统  # 自定义站点标题
-  - SITE_FAVICON=https://example.com/favicon.ico  # 自定义站点图标URL
-  - ADMIN_TITLE_SUFFIX= - 管理后台  # 管理后台标题后缀
-  # OCR配置（可选）
-  - ALIYUN_ACCESS_KEY_ID=your_access_key_id
-  - ALIYUN_ACCESS_KEY_SECRET=your_access_key_secret
-  - ALIYUN_OCR_ENDPOINT=ocr-api.cn-hangzhou.aliyuncs.com
+```bash
+# 终端 1：启动后端
+npm run dev
+
+# 终端 2：启动前端开发服务器（自动代理 API 到 localhost:3000）
+npm run dev:frontend
 ```
 
-**注意**：OCR图片识别功能为可选功能，如不需要可忽略相关配置。
+前端开发服务器运行在 http://localhost:5173
 
-### 站点设置
-支持通过环境变量或管理后台配置站点信息：
+### Docker 部署
 
-**环境变量配置**（推荐用于统一部署）：
-- `SITE_TITLE`: 网站标题，显示在浏览器标签页
-- `SITE_FAVICON`: 网站图标URL，支持HTTP/HTTPS链接或base64编码
-- `ADMIN_TITLE_SUFFIX`: 管理后台标题后缀
+```bash
+docker-compose -f docker-compose-build.yml up -d
+```
 
-**管理后台配置**：
-- 访问 `/admin` → 站点设置
-- 可上传自定义图标文件（PNG、JPG、ICO、SVG）
-- 支持重置为环境变量默认值
-- 修改会覆盖环境变量设置
+或使用预构建镜像：
 
-**优先级**：管理后台设置 > 环境变量 > 系统默认值
+```bash
+docker-compose up -d
+```
 
-### 默认配置
-- **端口**：3000
-- **管理密钥**：admin123（请及时修改）
-- **数据持久化**：自动挂载 data、uploads、logs 目录
+## 环境变量
 
-## 📡 API接口
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `ADMIN_SECRET_KEY` | 是 | — | 管理后台登录密钥 |
+| `JWT_SECRET` | 是 | 随机生成 | JWT 签名密钥 |
+| `NODE_ENV` | 否 | development | 运行环境 |
+| `PORT` | 否 | 3000 | 服务端口 |
+| `CORS_ORIGIN` | 否 | — | CORS 允许来源（逗号分隔） |
+| `SITE_TITLE` | 否 | 歌单系统 | 站点标题 |
+| `ALIYUN_ACCESS_KEY_ID` | 否 | — | 阿里云 OCR（可选） |
+| `ALIYUN_ACCESS_KEY_SECRET` | 否 | — | 阿里云 OCR（可选） |
+
+完整配置参见 `.env.example`。
+
+## 项目结构
+
+```
+├── backend/                 # 后端 (Express + SQLite)
+│   ├── app.js               # 入口，静态文件托管 frontend/dist
+│   ├── config/              # 配置、数据库连接
+│   ├── middleware/           # 认证、限流、校验
+│   ├── models/              # 数据模型
+│   ├── routes/              # API 路由
+│   └── utils/               # 缓存、日志、OCR
+├── frontend/                # 前端 (Vue 3 + Vite)
+│   ├── vite.config.js       # Vite 配置
+│   ├── index.html           # Vite 入口 HTML
+│   ├── src/
+│   │   ├── main.js          # 应用入口
+│   │   ├── App.vue          # 根组件（主题 Provider）
+│   │   ├── theme.js         # 主题系统（暗色/亮色/自动）
+│   │   ├── router/          # vue-router 路由定义
+│   │   ├── api/             # 统一 API 封装
+│   │   ├── composables/     # 可复用逻辑（认证、站点设置）
+│   │   ├── components/      # 通用组件
+│   │   └── views/           # 页面组件
+│   ├── dist/                # 构建产物（git ignored）
+│   └── uploads/             # 上传文件目录
+├── scripts/                 # 数据库初始化/校验脚本
+├── Dockerfile               # 多阶段构建
+├── docker-compose.yml       # Docker Compose
+└── .env.example             # 环境变量模板
+```
+
+## npm 脚本
+
+| 命令 | 说明 |
+|------|------|
+| `npm start` | 启动服务（含数据库自动初始化） |
+| `npm run dev` | 后端开发模式（nodemon） |
+| `npm run dev:frontend` | 前端开发模式（Vite HMR） |
+| `npm run build:frontend` | 构建前端到 frontend/dist |
+| `npm run build` | 同 build:frontend |
+| `npm run init-db` | 手动初始化数据库 |
+| `npm run verify` | 校验数据库完整性 |
+
+## API 接口
 
 ### 公开接口
-- `GET /api/songs` - 获取歌曲列表
-- `GET /api/tags` - 获取标签列表  
-- `GET /api/streamer/profile` - 获取用户信息
-- `POST /api/auth/login` - 管理员登录
+- `GET /api/songs` — 歌曲列表（分页、搜索、标签筛选）
+- `GET /api/songs/:id` — 歌曲详情
+- `GET /api/tags` — 标签列表
+- `GET /api/tags/details` — 标签详情（含使用统计）
+- `GET /api/streamer/profile` — 用户信息
+- `GET /api/site/settings` — 站点设置
+- `POST /api/auth/login` — 管理员登录
 
-### 管理接口（需要身份验证）
-- `POST /api/songs` - 添加歌曲
-- `PUT /api/songs/:id` - 更新歌曲
-- `DELETE /api/songs/:id` - 删除歌曲
-- `POST /api/tags` - 添加标签
-- `DELETE /api/tags/:name` - 删除标签
-- `PUT /api/streamer/profile` - 更新用户信息
-- `POST /api/streamer/avatar` - 上传头像
-- `POST /api/streamer/background` - 上传背景
-- `PUT /api/auth/change-key` - 修改管理密钥
+### 管理接口（需 Bearer Token）
+- `POST/PUT/DELETE /api/songs/:id` — 歌曲 CRUD
+- `POST/PUT/DELETE /api/tags/:id` — 标签 CRUD
+- `PUT /api/streamer/profile` — 更新用户信息
+- `POST /api/streamer/avatar` — 上传头像
+- `POST /api/streamer/background` — 上传背景图
+- `PUT /api/site/settings` — 更新站点设置
+- `POST /api/site/favicon` — 上传站点图标
+- `PUT /api/auth/change-key` — 修改管理密钥
+- `POST /api/songs/import/excel` — Excel 批量导入
+- `POST /api/songs/import/image` — 图片 OCR 识别
+- `POST /api/songs/import/image/confirm` — 确认导入 OCR 结果
 
-### 站点设置接口
-- `GET /api/site/settings` - 获取站点设置（公开）
-- `PUT /api/site/settings` - 更新站点设置（需验证）
-- `POST /api/site/favicon` - 上传站点图标（需验证）
-- `DELETE /api/site/favicon` - 删除站点图标（需验证）
-- `POST /api/site/reset` - 重置为默认值（需验证）
+## 许可证
 
-### 导入接口
-- `GET /api/songs/import/template` - 下载Excel模板
-- `POST /api/songs/import/excel` - Excel批量导入
-- `POST /api/songs/import/image` - 图片OCR识别
-- `POST /api/songs/import/image/confirm` - 确认导入OCR识别结果
-
-## 🛠️ 技术栈
-
-### 前端
-- **Vue 3** - 响应式框架
-- **Naive UI** - 现代化组件库
-
-### 后端
-- **Node.js + Express** - 服务器框架
-- **Better-SQLite3** - 轻量级数据库
-- **JWT** - 身份认证
-- **阿里云OCR SDK** - 图片文字识别
-
-## 🆘 常见问题
-
-### Q: 如何修改端口？
-A: 修改 `docker-compose.prod.yml` 中的端口映射
-
-### Q: 数据存储在哪里？
-A: 数据自动保存在 `data`、`uploads`、`logs` 目录
-
-### Q: 如何备份数据？
-A: 备份 `data`、`uploads`、`logs` 三个目录即可
-
-### Q: 如何更新到最新版本？
-A: 运行 `docker-compose -f docker-compose.prod.yml pull && docker-compose -f docker-compose.prod.yml up -d`
-
-### Q: 图片识别功能不可用怎么办？
-A: 图片识别功能为可选功能，如不需要可以正常使用系统的其他功能
-
-### Q: Docker部署后出现"no such table: streamers"错误？
-A: 这是数据库初始化问题，解决方案：
-1. 停止容器：`docker-compose down`
-2. 删除数据卷：`docker volume rm $(docker volume ls -q)`
-3. 重新启动：`docker-compose up -d`
-4. 或者运行验证脚本：`docker exec ale-song-list npm run verify`
-
-### Q: 站点标题和图标设置后刷新会恢复？
-A: 确保Docker volume映射正确，数据库文件应持久化存储
-
----
-
-**享受使用歌单管理系统！** 🎵✨
+MIT
